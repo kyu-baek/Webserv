@@ -152,6 +152,15 @@ void Connection::connectionLoop()
 									_eventManager.enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 								}
 							}
+							else if (_responserMap[currEvent->ident].status == Response::rMaking &&
+										_clientMap[currEvent->ident].isCgi == true)
+							{
+								_eventManager.enrollEventToChangeList(_clientMap[currEvent->ident].file.fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+								_fdMap.insert(std::make_pair(_clientMap[currEvent->ident].file.fd, currEvent->ident));
+								//_eventManager.enrollEventToChangeList(_fdMap[currEvent->ident], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+
+							}
+
 						}
 					}
 				}
@@ -172,12 +181,23 @@ void Connection::connectionLoop()
 						std::cout << "fMaking = " << _clientMap[_fdMap[currEvent->ident]].file.buffer << std::endl;
 						break;
 					case InfoClient::fComplete:
-						_responserMap[_fdMap[currEvent->ident]].startResponse(_clientMap[_fdMap[currEvent->ident]]);
-						//_eventManager.enrollEventToChangeList(_fdMap[currEvent->ident], EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
-						_eventManager.enrollEventToChangeList(_fdMap[currEvent->ident], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-						std::cout << currEvent->ident << " file reading done. open client " << _fdMap[currEvent->ident] << std::endl;;
-						close(currEvent->ident);
-						_fdMap.erase(_fdMap.find(currEvent->ident)->first);
+						if (_clientMap[_fdMap[currEvent->ident]].isCgi != true)
+						{
+							_responserMap[_fdMap[currEvent->ident]].startResponse(_clientMap[_fdMap[currEvent->ident]]);
+							_eventManager.enrollEventToChangeList(_fdMap[currEvent->ident], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+							std::cout << currEvent->ident << " file reading done. open client " << _fdMap[currEvent->ident] << std::endl;;
+							close(currEvent->ident);
+							_fdMap.erase(_fdMap.find(currEvent->ident)->first);
+						}
+						else
+						{
+							std::cout << "cgi!!!!!!\n";
+							_eventManager.enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+						}
+							//_eventManager.enrollEventToChangeList(_responserMap[_fdMap[currEvent->ident]].fds[1], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+						
+					
+					
 						break;
 					}
 				}
@@ -230,8 +250,8 @@ void Connection::connectionLoop()
 				{
 					std::cout << " FILE FD write\n";
 					int currentClient = _fdMap[currEvent->ident];
-
-					int rdFile = writeFile(currEvent->ident);
+					
+					int rdFile = writeFile(_responserMap[_fdMap[currEvent->ident]].fds[1]);
 					switch (rdFile)
 					{
 					case Response::wError:
@@ -241,10 +261,12 @@ void Connection::connectionLoop()
 						std::cout << "File Write Complete\n";
 						if (_clientMap[currentClient].isCgi == false)
 						{
-							_eventManager.enrollEventToChangeList(_fdMap[currEvent->ident], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+							// _eventManager.enrollEventToChangeList(_fdMap[currEvent->ident], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 						}
 						else
 						{
+							close(currEvent->ident);
+							_fdMap.erase(currEvent->ident);
 							//_responserMap[currentClient].excuteCgi();
 							
 						}
@@ -274,7 +296,26 @@ void Connection::connectionLoop()
 int
 Connection::writeFile(int fd)
 {
-	
+	size_t size;
+	std::cout << "\n\nWRITEFIie Func\n";
+	// std::cout << " _fdMap[fd] : " << _fdMap[fd] << std::endl;
+	//int fd = _responserMap[_fdMap[fd]].fds[1];
+	std::cout << "fd : " << fd;
+	char buff[1024] = {0};
+
+	size = write(fd, buff, sizeof(buff));
+	if (size < 0)
+	{
+		close(fd);
+		return -1;
+	}
+	else if (size <= sizeof(buff))
+	{
+		close(fd);
+		return 1;
+	}
+	else
+		return 0;
 }
 
 // int
@@ -331,6 +372,7 @@ Connection::readFile(InfoClient &infoClient, int fd)
 		return InfoClient::fError;
 	}
 	infoClient.file.buffer += std::string(buffer, size);
+	infoClient.file.size += size;
 	if (size < BUFFER_SIZE)
 	{
 		// close(fd);

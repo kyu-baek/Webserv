@@ -23,6 +23,7 @@ public:
 	void	sendToClient(InfoClient &infoClient);
 
 	void	makeResponseMsg(InfoClient &infoClient);
+	int		makeCgiResponseMsg(InfoClient &infoClient);
 	void	makeErrorResponseMsg(InfoClient &infoClient, int errorCode);
 	void	makeRedirectResponse(InfoClient &infoClient);
 	void	startResponse(InfoClient &infoClient);
@@ -59,6 +60,7 @@ private:
 public:
 	int status;
 	std::string fileBuff;
+	int fds[2];
 
 protected:
 	std::string _result;

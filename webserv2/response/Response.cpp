@@ -30,7 +30,7 @@ Response::responseToClient(int clientSocket, InfoClient &infoClient)
 		infoClient.isCgi = true;
 		
 		std::cout << "cgiFinder message\n\n";
-		// makeCgiResponseMsg(infoClient);
+		makeCgiResponseMsg(infoClient);
 		//cgi 객체 생성후 요청
 	}
 	else { //get
@@ -49,6 +49,78 @@ Response::responseToClient(int clientSocket, InfoClient &infoClient)
 	// close(clientSocket);
 }
 
+int
+Response::makeCgiResponseMsg(InfoClient &infoClient)
+{
+	char *args[2] = {"www/cgi-bin/hello.py", NULL};
+	this->status = rMaking;
+	// std::string errorPath = "www/cgi-bin/hello.py";
+
+	std::map<std::string, std::string> envMap;
+	envMap.insert(std::pair<std::string, std::string>("AUTH_TYPE", ""));
+	envMap.insert(std::pair<std::string, std::string>("GATE_INTERFACE", "CGI/1.1"));
+	envMap.insert(std::pair<std::string, std::string>("SERVER_NAME", "webserver"));
+	envMap.insert(std::pair<std::string, std::string>("SERVER_PROTOCOL", "HTTP/1.1"));
+	envMap.insert(std::pair<std::string, std::string>("REMOTE_USER", ""));
+	envMap.insert(std::pair<std::string, std::string>("CONTENT_LENGTH", "-1"));
+	envMap.insert(std::pair<std::string, std::string>("CONTENT_TYPE", ""));
+	envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "GET"));
+
+	envMap.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", args[0]));
+	// envMap.insert(std::pair<std::string, std::string>("SCRIPT_FILENAME", args[1]));
+
+	// char **cgiEnv = new char *[sizeof(char *) * envMap.size() + 1]; // delete needed
+	char *cgiEnv[envMap.size() + 1];
+	cgiEnv[envMap.size()] = NULL;
+	int i = 0;
+	for (std::map<std::string, std::string>::iterator iter = envMap.begin(); iter != envMap.end(); ++iter)
+	{
+		cgiEnv[i] = strdup((iter->first + "=" + iter->second).c_str());
+		// std::cout << cgiEnv[i] << "\n";
+		i++;
+	}
+
+	// execve("hello.py", NULL, NULL);
+	//int fds[2];
+	pipe(this->fds);
+
+	int pid = fork();
+
+	if (pid == 0)
+	{
+		std::cerr << "CHILD" << std::endl;
+		close(fds[1]);
+		dup2(fds[0], STDIN_FILENO);
+		close(fds[0]);
+		int resFd = open("res", O_WRONLY | O_CREAT, 0744);
+		dup2(resFd, STDOUT_FILENO);
+		close(resFd);
+
+		execve("www/cgi-bin/hello.py", args, cgiEnv);
+
+		exit(EXIT_SUCCESS);
+	}
+	else
+	{
+		close(fds[0]);
+
+		int tmpFd = open("www/cgi-bin/tmp", O_RDONLY);
+		char buff[1024] = {0};
+		std::cout << "fds = " << fds[1] << "   tmpfd  = " << tmpFd << std::endl;
+		std::cerr << "OPEN" << std::endl;
+		infoClient.file.fd = tmpFd;
+		// int n = read(tmpFd, buff, sizeof(buff));
+		// std::cerr << "n_Read: " << n << std::endl;
+		// write(fds[1], buff, n);
+		// close(fds[1]);
+		// // close(upFd);
+		// waitpid(pid, NULL, 0);
+
+
+		std::cout << "SUCCESS!\n";
+	}
+	return 0;
+}
 
 
 std::string

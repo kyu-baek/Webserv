@@ -104,7 +104,7 @@ void Connection::connectionLoop()
 					_clientMap.insert(std::pair<int, InfoClient>(clientSocket, infoClient));
 					_clientMap[clientSocket].reqMsg = "";
 
-					Response tmpResponser;
+					Response tmpResponser(_clientMap[clientSocket]);
 					_responserMap.insert(std::pair<int, Response>(clientSocket, tmpResponser));
 				}
 
@@ -133,33 +133,55 @@ void Connection::connectionLoop()
 							_clientMap[currEvent->ident].reqMsg.assign(BUFFER_SIZE, 0);
 						}
 						else {
-							_responserMap[currEvent->ident].responseToClient(currEvent->ident, _clientMap[currEvent->ident]);
-							if (_responserMap[currEvent->ident].status == Response::rComplete) {
-								std::cout << "Response::rComplete\n";
-								_eventManager.enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-							}
-							else if (_responserMap[currEvent->ident].status == Response::rError) {
-								if (_clientMap[currEvent->ident].status == InfoClient::fMaking) {
-									std::cout << "file fd = " <<_clientMap[currEvent->ident].file.fd << std::endl;
-									_eventManager.enrollEventToChangeList(_clientMap[currEvent->ident].file.fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-									_fdMap.insert(std::make_pair(_clientMap[currEvent->ident].file.fd, currEvent->ident));
-									std::cout << "read agin fd = " << _clientMap[currEvent->ident].file.fd << " currEvent = " << currEvent->ident <<std::endl;;
-								}
-								else if (_clientMap[currEvent->ident].status == InfoClient::fComplete) {
-									std::cout << "InfoClient::fComplete\n";
-									_clientMap[currEvent->ident].status = InfoClient::fNone;
-									_responserMap[currEvent->ident].status == Response::rNone;
-									_eventManager.enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-								}
-							}
-							else if (_responserMap[currEvent->ident].status == Response::rMaking &&
-										_clientMap[currEvent->ident].isCgi == true)
+							
+							
+							_responserMap[currEvent->ident].checkResponseCase();
+
+							if (_responserMap[currEvent->ident].ioCase == true)
 							{
+								if (_responserMap[currEvent->ident].responseIO() == 0)
+								{
+									_responserMap[currEvent->ident].status = Response::rError;
+									_responserMap[currEvent->ident].responseIO();
+								}
+								
 								_eventManager.enrollEventToChangeList(_clientMap[currEvent->ident].file.fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 								_fdMap.insert(std::make_pair(_clientMap[currEvent->ident].file.fd, currEvent->ident));
-								//_eventManager.enrollEventToChangeList(_fdMap[currEvent->ident], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-
 							}
+							else
+							{
+								//_responserMap[currEvent->ident].makeResponse();
+								//makeErrorResponse();
+								_eventManager.enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+							}
+
+							// if (_responserMap[currEvent->ident].status == Response::rComplete) {
+							// 	std::cout << "Response::rComplete\n";
+
+							// 	_eventManager.enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+							// }
+							// else if (_responserMap[currEvent->ident].status == Response::rError) {
+							// 	if (_clientMap[currEvent->ident].status == InfoClient::fMaking) {
+							// 		std::cout << "file fd = " <<_clientMap[currEvent->ident].file.fd << std::endl;
+							// 		_eventManager.enrollEventToChangeList(_clientMap[currEvent->ident].file.fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+							// 		_fdMap.insert(std::make_pair(_clientMap[currEvent->ident].file.fd, currEvent->ident));
+							// 		std::cout << "read agin fd = " << _clientMap[currEvent->ident].file.fd << " currEvent = " << currEvent->ident <<std::endl;;
+							// 	}
+							// 	else if (_clientMap[currEvent->ident].status == InfoClient::fComplete) {
+							// 		std::cout << "InfoClient::fComplete\n";
+							// 		_clientMap[currEvent->ident].status = InfoClient::fNone;
+							// 		_responserMap[currEvent->ident].status == Response::rNone;
+							// 		_eventManager.enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+							// 	}
+							// }
+							// else if (_responserMap[currEvent->ident].status == Response::rMaking &&
+							// 			_clientMap[currEvent->ident].isCgi == true)
+							// {
+							// 	_eventManager.enrollEventToChangeList(_clientMap[currEvent->ident].file.fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+							// 	_fdMap.insert(std::make_pair(_clientMap[currEvent->ident].file.fd, currEvent->ident));
+							// 	//_eventManager.enrollEventToChangeList(_fdMap[currEvent->ident], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+
+							// }
 
 						}
 					}
@@ -168,6 +190,8 @@ void Connection::connectionLoop()
 				{
 					std::cout << "file event = " << currEvent->ident << std::endl;
 					std::cout << _fdMap[currEvent->ident] << std::endl;
+
+
 					int res = readFile(_clientMap[_fdMap[currEvent->ident]], currEvent->ident);
 
 					switch (res)
@@ -181,15 +205,14 @@ void Connection::connectionLoop()
 						std::cout << "fMaking = " << _clientMap[_fdMap[currEvent->ident]].file.buffer << std::endl;
 						break;
 					case InfoClient::fComplete:
-						if (_clientMap[_fdMap[currEvent->ident]].isCgi != true)
+						if (_clientMap[_fdMap[currEvent->ident]].isCgi != true) //get or error
 						{
 							_responserMap[_fdMap[currEvent->ident]].startResponse(_clientMap[_fdMap[currEvent->ident]]);
 							_eventManager.enrollEventToChangeList(_fdMap[currEvent->ident], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-							std::cout << currEvent->ident << " file reading done. open client " << _fdMap[currEvent->ident] << std::endl;;
 							close(currEvent->ident);
 							_fdMap.erase(_fdMap.find(currEvent->ident)->first);
 						}
-						else
+						else //post or delete
 						{
 							std::cout << "cgi!!!!!!\n";
 							_eventManager.enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);

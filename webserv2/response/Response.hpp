@@ -17,9 +17,16 @@ class HttpResInfo;
 class Response : public HttpResInfo 
 {
 public:
-	Response() : HttpResInfo(), status(rNone), _result(""), _sentBytes(0), _totalBytes(0) { }
+	Response() : HttpResInfo(), status(rNone), _result(""), _sentBytes(0), _totalBytes(0), ioCase(false) { }
+	Response(InfoClient &infoClient) : HttpResInfo(), status(rNone), _result(""), _sentBytes(0), _totalBytes(0), ioCase(false) {
+		client = &infoClient;
+	}
 public:
-	void	responseToClient(int clientSocket, InfoClient &infoClient);
+
+	int		responseIO();
+	int		responseIO(int code);
+	void	checkResponseCase();
+
 	void	sendToClient(InfoClient &infoClient);
 
 	void	makeResponseMsg(InfoClient &infoClient);
@@ -29,8 +36,9 @@ public:
 	void	startResponse(InfoClient &infoClient);
 	void	initResponse(InfoClient &infoClient);
 	int		readFd(InfoClient &infoClient, int fd);
-	bool	cgiFinder(InfoClient &infoClient);
-	bool	redirectionFinder(InfoClient &infoClient);
+
+	bool	cgiFinder();
+	bool	redirectionFinder();
 	void	Get();
 	void	Post();
 	void	Delete();
@@ -55,15 +63,18 @@ private:
 		size_t _sentBytes;
 		size_t _totalBytes;
 
-		//InfoClient &infoClient;
+
 
 public:
 	int status;
 	std::string fileBuff;
 	int fds[2];
-
+	std::string resPath;
+	bool ioCase;
+	InfoClient *client;
 protected:
 	std::string _result;
+
 	
 // private:
 // 	Request &req;

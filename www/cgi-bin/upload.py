@@ -1,43 +1,56 @@
-#!/usr/bin/env python
-import cgi, os
-# import cgitb; cgitb.enable()
+#!/usr/bin/python3
+from distutils.command.upload import upload
+import sys, os
 
-form = cgi.FieldStorage()
+content = sys.stdin.read()
+content = content.split("\r\n")
 
-print('FORM:')
-print(form.getfirst("user", "...").upper())    # This way it's safe.
-for item in form.getlist("item"):
-    print(item)
-print(form)
-print('END')
+# print(content)
 
-# fileitem = form.getvalue('filename')
+print("<html>")
+print("<body>")
+print("<div><a href=\"/home\">Go to index</a></div>")
 
-# if fileitem.file:
-#     fn = os.path.basename(fileitem.file)
-#     # print("what is " + fn);
-#     # open('/Users/jinhyeok/Desktop/42seoul/git_webserver/cpp_webserver/04_file_read/' + fn, 'wb').write(fileitem.file.read())
+content_type = content[2]
 
-#     message = 'The file "' + fn + '" was uploaded successfully'
+# print filename
+filename = content[1].split(";")[2].split("=")[1].strip('"')
+print("<h2>")
+print("filename : " + filename)
+print("</h2>")
 
-# else:
-#     message = 'No file was uploaded'
+# # save the file
+file_content = content[4]
+upload_path = str(os.environ.get("UPLOAD_PATH"))
+print("<h4>")
+print(upload_path)
+print("</h4>")
+print("<div>")
+if (content_type.split(': ')[1] == "text/plain"):
+    upload_file = open(upload_path + filename, "wt")
+    upload_file.write(file_content)
+    upload_file.close()
+    print("<h1>")
+    print("FILE UPLOADED!!")
+    print("</h1>")
+else:
+    print("<h1>")
+    print("ONLY TEXT UPLOAD")
+    print("</h1>")
+print("</div>")
+# "r" - Read - Default value. Opens a file for reading, error if the file does not exist
+# "a" - Append - Opens a file for appending, creates the file if it does not exist
+# "w" - Write - Opens a file for writing, creates the file if it does not exist
+# "x" - Create - Creates the specified file, returns an error if the file exist
+# "t" - Text - Default value. Text mode
+# "b" - Binary - Binary mode (e.g. images)
 
-# print("""
-# <!DOCTYPE html>
-# <html lang="en">
-# <head>
-# 	<meta charset="UTF-8">
-# 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-# 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-# 	<title>Little Webserver</title>
-# </head>
 
-# <body>
-#    <p>%s</p>
-#    <form action='upload.py' method='post' enctype='multipart/form-data'>
-#    <input type='file' name='filename'><br>
-#    <input type='submit' value='Upload'><br>
-#    </form>
-# </body>
-# </html>""" % (message,))
+# print contents
+file_contents = content[4].split('\n')
+for line in file_contents:
+    print("<div>")
+    print("%s" %line)
+    print("</div>")
+print("</body>")
+print("</html>")

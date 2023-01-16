@@ -3,52 +3,262 @@
 /***************************************************/
 
 #include "Response.hpp"
+#include "CGI.hpp"
+#include <sys/types.h>
+#include <dirent.h>
 
 
-/*
-	로직 순서
-	1. req 파싱 구간에서 발생한 에러 미리 처리
-	2. redirection 처리
-	3. cgi 관련 response 처리
-	4. 일반 get, post, delete 처리
-	5. client 의 새로운 request 를 위해 기존 상태는 초기화
+
+/*	responseToClient 
+
+	response process 종류를 나누어 주는 함수
+
+		로직 순서
+		1. req 파싱 구간에서 발생한 에러 미리 처리
+		2. redirection 처리
+		3. cgi 관련 response 처리
+		4. 일반 get, post, delete 처리
+		5. client 의 새로운 request 를 위해 기존 상태는 초기화
 */
-
 void
-Response::responseToClient(int clientSocket, InfoClient &infoClient)
+Response::checkResponseCase()
 {
+	if (client->req.t_result.pStatus == Request::pError) {
+		//makeErrorResponseMsg(infoClient, infoClient.req.t_result.status);
+		this->status = rError;
+		std::string errorPath = "";
 
-	// std::cout << "path = " << infoClient.req._target << std::endl;
-	if (infoClient.req.t_result.pStatus == Request::pError) {
-		makeErrorResponseMsg(infoClient, infoClient.req.t_result.status);
+		//1. config 파일 내부에 해당 error page 가 설정된 경우
+		std::map<std::string, std::vector<int> >::iterator it;
+		for (it = client->_server->errorPages.begin(); it != client->_server->errorPages.end(); it++)
+		{
+			for (unsigned int i = 0; i < it->second.size(); i++ )
+			{
+				if (it->second.at(i) ==  client->req.t_result.status)
+					errorPath = it->first;
+			}
+		}
+		if (errorPath != "")
+		{
+			ioCase = true;
+			resPath = "";
+		}
+		else
+		{
+			ioCase = false;
+			resPath = "";
+		}
 	}
-	else if (redirectionFinder(infoClient)) {
-		// makeRedirectResponse(infoClient);
+	else if (redirectionFinder()) {
 		std::cout << "redirect message\n\n";
+		ioCase = false;
+		resPath = "";
 	}
-	else if (cgiFinder(infoClient)) {
-		infoClient.isCgi = true;
-		
+	else if (cgiFinder()) {
 		std::cout << "cgiFinder message\n\n";
-		makeCgiResponseMsg(infoClient);
-		//cgi 객체 생성후 요청
+		client->isCgi = true;
+		ioCase = true;
+		resPath = "";
 	}
-	else { //get
-		makeErrorResponseMsg(infoClient, 404);
-		//makeResponseMsg(infoClient);
-	}
-	//sendReseponse(clientSocket);
-	//infoClient.req.clearRequest();
-	
-	//(void)infoClient; // to be used
+	// else if (autoindexFinder()) {
+	// 	ioCase = false;
+	// }
+	else { 
+		int method = client->req.t_result.method;
+		if (method == GET || method == POST )
+		{
+			char cwd[1024];
+			getcwd(cwd, 1024);
+			std::string cwdPath(cwd);
+		
+			if (client->req.t_result.target == "/home" || client->req.t_result.target == "/")
+				resPath = cwdPath + "/resource/static/index.html";
+			else if (client->req.t_result.target == "/server")
+				resPath = cwdPath + "/resource/static/server.html";
+			else if (client->req.t_result.target == "/submit")
+				resPath = cwdPath + "/resource/static/submit.html";
+			else if (client->req.t_result.target == "/upload")
+				resPath = cwdPath + "/resource/static/upload.html";
+			else if (client->req.t_result.target == "/delete")
+				resPath = cwdPath + "/resource/static/delete.html";
 
-	// std::cout << " response to client : " << clientSocket << "\n";
-	// long valWrite = write(clientSocket, resMsg.c_str(), resMsg.size());
-	// if (valWrite == (long)resMsg.size())
-	// 	std::cout << "SERVER RESPONSE SENT\n";
-	// close(clientSocket);
+			if (client->req.t_result.target == "/www/cgi-bin/submit.py")
+				resPath = cwdPath + "/submit_out.html";
+			else if (client->req.t_result.target == "/www/cgi-bin/upload.py")
+				resPath = cwdPath + "/upload_out.html";
+			else
+				this->status = rError;
+			ioCase = true;
+		}
+		else if (method == DELETE)
+		{
+			ioCase = true;
+			resPath = "";
+		}
+		else
+		{
+			this->status = rError;
+			ioCase = true;
+			resPath = "";
+		}	
+	}
 }
 
+// void
+// Response::checkResponseCase(InfoClient &infoClient)
+// {
+
+// 	// std::cout << "path = " << infoClient.req._target << std::endl;
+// 	if (infoClient.req.t_result.pStatus == Request::pError) {
+// 		makeErrorResponseMsg(infoClient, infoClient.req.t_result.status);
+// 	}
+// 	else if (redirectionFinder(infoClient)) {
+// 		// makeRedirectResponse(infoClient);
+// 		std::cout << "redirect message\n\n";
+// 	}
+// 	else if (cgiFinder(infoClient)) {
+// 		infoClient.isCgi = true;
+		
+// 		std::cout << "cgiFinder message\n\n";
+// 		makeCgiResponseMsg(infoClient);
+// 		//cgi 객체 생성후 요청
+// 	}
+// 	else { //get
+// 		//makeErrorResponseMsg(infoClient, 404);
+// 		makeResponseMsg(infoClient);
+// 	}
+// 	//sendReseponse(clientSocket);
+// 	//infoClient.req.clearRequest();
+	
+// }
+
+int
+Response::responseIO()
+{
+	client->status = InfoClient::fMaking;
+	if (this->status == rError)
+	{
+		std::string tmpPath = "configFiles/test.html";
+
+		int fd;
+		struct stat ss;
+		if (stat(tmpPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true ||
+			(fd = open(tmpPath.c_str(), O_RDONLY)) == -1)
+			std::cout << "errorPath failier" << std::endl;
+		else
+		{
+			fcntl(fd, F_SETFL, O_NONBLOCK);
+			client->file.fd = fd;
+		}
+	}
+	else if (client->req.t_result.method == GET)
+	{
+		int fd;
+		struct stat ss;
+		if (stat(resPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true ||
+			(fd = open(resPath.c_str(), O_RDONLY)) == -1)
+			std::cout << "errorPath failier" << std::endl;
+		else
+		{
+			fcntl(fd, F_SETFL, O_NONBLOCK);
+			client->file.fd = fd;
+		}
+	}
+	else if (client->req.t_result.method == POST)
+	{
+		char cwd[1024];
+		getcwd(cwd, 1024);
+		std::string cwdPath(cwd);
+		std::string execPath = "";
+		std::string filePath = "";
+		std::string resMsg = "";
+		
+		if (client->req.t_result.target == "/www/cgi-bin/submit.py")
+		{
+			execPath = cwdPath + "/www/cgi-bin/submit.py";
+			filePath = cwdPath + "/submit_out.html";
+		}
+		else if (client->req.t_result.target == "/www/cgi-bin/upload.py")
+		{
+			execPath = cwdPath + "/www/cgi-bin/upload.py";
+			filePath = cwdPath + "/upload_out.html";
+		}
+
+
+		char *args[2] = {strdup(execPath.c_str()), NULL};
+
+		/* cgi env setting */
+		CGI cgi;
+		cgi.initEnvMap(*client);
+
+		cgi.envMap.insert(std::pair<std::string, std::string>("UPLOAD_PATH", cwdPath + "/uploaded/"));
+		cgi.envMap.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", args[0]));
+
+		// char **cgiEnv = new char *[sizeof(char *) * cgi.envMap.size() + 1]; // delete needed
+		char *cgiEnv[cgi.envMap.size() + 1];
+		cgiEnv[cgi.envMap.size()] = NULL;
+		int i = 0;
+		for (std::map<std::string, std::string>::iterator iter = cgi.envMap.begin(); iter != cgi.envMap.end(); ++iter)
+		{
+			cgiEnv[i] = strdup((iter->first + "=" + iter->second).c_str());
+			// std::cout << cgiEnv[i] << "\n";
+			i++;
+		}
+
+		// int fds[2];
+		pipe(this->fds);
+
+		int pid = fork();
+
+		if (pid == 0)
+		{
+			// std::cerr << "CHILD" << std::endl;
+			close(fds[1]);
+			dup2(fds[0], STDIN_FILENO);
+			close(fds[0]);
+			int resFd = open(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0744);
+			if (resFd < 0)
+				std::cerr << "Error : resFd open()\n";
+			dup2(resFd, STDOUT_FILENO);
+			close(resFd);
+
+			execve(execPath.c_str(), args, cgiEnv);
+
+			exit(EXIT_SUCCESS);
+		}
+		else
+		{
+
+
+			char buff[1024] = {0};
+			strcpy(buff, client->req.t_result.body.c_str());
+			close(fds[0]);
+			write(fds[1], buff, sizeof(buff));
+			// std::cerr << "		test\n" << buff << "\n\n";
+			close(fds[1]);
+
+			waitpid(pid, NULL, 0);
+
+			/* msg to client */
+			// resMsg = resMsgHeader(*client);
+			// resMsg += "\n" + resMsgBody(filePath);
+
+			// std::cout << " response to client : " << client->_clientSocket << "\n";
+			// long valWrite = write(client->_clientSocket , resMsg.c_str(), resMsg.size());
+			// if (valWrite == (long)resMsg.size())
+			// 	std::cout << "SERVER RESPONSE SENT\n";
+			// unlink(filePath.c_str()); // if you want to check output html, delete it
+			return;
+		}
+	}
+	else if (client->req.t_result.method == DELETE)
+	{
+
+	}
+}
+
+
+//***************************make response*************************
 int
 Response::makeCgiResponseMsg(InfoClient &infoClient)
 {
@@ -105,7 +315,7 @@ Response::makeCgiResponseMsg(InfoClient &infoClient)
 		close(fds[0]);
 
 		int tmpFd = open("www/cgi-bin/tmp", O_RDONLY);
-		char buff[1024] = {0};
+		//char buff[1024] = {0};
 		std::cout << "fds = " << fds[1] << "   tmpfd  = " << tmpFd << std::endl;
 		std::cerr << "OPEN" << std::endl;
 		infoClient.file.fd = tmpFd;
@@ -138,6 +348,8 @@ Response::makeResponseGET(InfoClient &infoClient)
 		resMsg = resMsgHeader(infoClient) + "\n" + resMsgBody(cwdPath + "/resource/static/submit.html");
 	else if (infoClient.req.t_result.target == "/upload")
 		resMsg = resMsgHeader(infoClient) + "\n" + resMsgBody(cwdPath + "/resource/static/upload.html");
+	else if (infoClient.req.t_result.target == "/delete")
+		resMsg = resMsgHeader(infoClient) + "\n" + resMsgBody(cwdPath + "/resource/static/delete.html");
 	else
 		resMsg = makeResponseERR();
 	return (resMsg);
@@ -163,13 +375,48 @@ Response::resMsgHeader(InfoClient &infoClient)
 		setConnection("close");
 	setContentType("text/html");
 	// setTransferEncoding("chunked");
-	setContentLength(1000);
+	struct stat st;
+	std::string resMsg;
+	char cwd[1024];
+	getcwd(cwd, 1024);
+	std::string cwdPath(cwd);
+	std::string file = "";
+	int contentLen = 0;
+	if (infoClient.req.t_result.method == GET)
+	{
+		file = "";
+		if (infoClient.req.t_result.target == "/home" || infoClient.req.t_result.target == "/")
+			file = cwdPath + "/resource/static/index.html";
+		else if (infoClient.req.t_result.target == "/server")
+			file = cwdPath + "/resource/static/server.html";
+		else if (infoClient.req.t_result.target == "/submit")
+			file = cwdPath + "/resource/static/submit.html";
+		else if (infoClient.req.t_result.target == "/upload")
+			file = cwdPath + "/resource/static/upload.html";
+		else if (infoClient.req.t_result.target == "/delete")
+			file = cwdPath + "/resource/static/delete.html";
+	}
+	else if (infoClient.req.t_result.method == POST)
+	{
+		file = "";
+		if (infoClient.req.t_result.target == "/www/cgi-bin/submit.py")
+			file = cwdPath + "/submit_out.html";
+		else if (infoClient.req.t_result.target == "/www/cgi-bin/upload.py")
+			file = cwdPath + "/upload_out.html";
+	}
+
+	std::cout << "\n\nresponse file : " << file << "  \n\n";
+	stat(file.c_str(), &st);
+	contentLen = st.st_size;
+	setContentLength(contentLen);
+	// std::cout << "\n\n============\n" << infoClient.req.t_result.contentLen << "\n===========\n\n";
 
 	header << getHttpVersion() << " " << getStatusCode() << " " << getStatusMsg() << CRLF;
 	header << "Content-Type: " << getContentType() << "; charset=utf-8" << CRLF;
 	header << "Connection: " << getConnection() << CRLF;
 	header << "Date: " << timeStamp() << CRLF;
-	header << "Server: " << "little webserver" << CRLF;
+	header << "Server: "
+		   << "little webserver" << CRLF;
 	// header << "Transfer-Encoding : chunked" << CRLF;
 	header << "Content-Length: " << getContentLength() << CRLF;
 
@@ -197,6 +444,10 @@ Response::resMsgBody(std::string srcLocation)
 
 	return body.str();
 }
+
+
+//***************************make response*************************
+
 
 const char *
 Response::getSendResult() const
@@ -245,11 +496,9 @@ Response::clearResult()
 	_totalBytes = 0;
 }
 
-/*
-
+/* makeErrorResponseMsg
  	1.해당 errorCode 에 대한 파일을 서버에서 가지고 있는 경우
 	2. 없는 경우
-
 */
 void
 Response::makeErrorResponseMsg(InfoClient &infoClient, int errorCode)
@@ -291,73 +540,146 @@ Response::makeErrorResponseMsg(InfoClient &infoClient, int errorCode)
 	}
 }
 
+
 void
 Response::makeResponseMsg(InfoClient &infoClient)
 {
+	
 	int clientSocket = infoClient._clientSocket;
-	std::cout << "makeResponseMsg "<< std::endl;
 
+	char cwd[1024];
+	getcwd(cwd, 1024);
+	std::string cwdPath(cwd);
+	std::string execPath = "";
+	std::string filePath = "";
 	std::string resMsg = "";
 	if (infoClient.req.t_result.method == GET)
 	{
 		resMsg = makeResponseGET(infoClient);
-		std::cout << "		------result msg------- : \n" << resMsg << "\n";
+		std::cout << "		------result msg------- : \n"
+				  << resMsg << "\n";
+	}
+	else if (infoClient.req.t_result.method == DELETE)
+	{
+		int pid = fork();
+		if (pid == 0)
+		{
+			std::cerr << "\n\nTHIS IS DELETE METHOD \n\n";
+			std::string uploadPath = cwdPath + "/uploaded/";
 
+			/* all files delete in uploaded dir */
+			DIR *dir = opendir(uploadPath.c_str());
+			struct dirent *dirent = NULL;
+			while (true)
+			{
+				dirent = readdir(dir);
+				if (!dirent)
+					break;
+				// std::cout << dirent->d_name << "\n";
+				if (strcmp(dirent->d_name, ".") != 0 && strcmp(dirent->d_name, ".."))
+				{
+					std::string delPath = uploadPath + dirent->d_name;
+					unlink(delPath.c_str());
+				}
+			}
+		}
 	}
 	else if (infoClient.req.t_result.method == POST)
 	{
-		char cwd[1024];
-		getcwd(cwd, 1024);
-		std::string cwdPath(cwd);
-		std::string execPath = "";
-		std::string filePath = "";
 		if (infoClient.req.t_result.target == "/www/cgi-bin/submit.py")
 		{
 			execPath = cwdPath + "/www/cgi-bin/submit.py";
-			filePath = cwdPath + "/submit.html";
+			filePath = cwdPath + "/submit_out.html";
 		}
 		else if (infoClient.req.t_result.target == "/www/cgi-bin/upload.py")
 		{
-			std::cerr << "\n\nfor uploading \n\n";
 			execPath = cwdPath + "/www/cgi-bin/upload.py";
-			filePath = cwdPath + "/upload.html";
-			std::string uploadPath = cwdPath + "/text.txt";
-
-			std::cout << "\n\n" << uploadPath << "\n" << infoClient.req.t_result.body << "\n\n";
-			int upFd = open(uploadPath.c_str(), O_WRONLY | O_CREAT, 0744);
-			write(upFd, infoClient.req.t_result.body.c_str(), infoClient.req.t_result.body.size());
+			filePath = cwdPath + "/upload_out.html";
 		}
+
+		//std::string tmpFilePath = cwdPath + "/tmp_" + std::to_string(clientSocket);
+
+		/* tmp file to save content body */
+		// int tmpFd = open(tmpFilePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0744);
+		// write(tmpFd, infoClient.req.t_result.body.c_str(), infoClient.req.t_result.body.size());
+		// close(tmpFd);
+
+		/* args for CGI script */
+		// char **args = new char *[sizeof(char *) * 3];
+		// args[0] = strdup(execPath.c_str());
+		// args[1] = NULL;
+		char *args[2] = {strdup(execPath.c_str()), NULL};
+
+		/* cgi env setting */
+		CGI cgi;
+		cgi.initEnvMap(infoClient);
+
+		cgi.envMap.insert(std::pair<std::string, std::string>("UPLOAD_PATH", cwdPath + "/uploaded/"));
+		cgi.envMap.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", args[0]));
+
+		// char **cgiEnv = new char *[sizeof(char *) * cgi.envMap.size() + 1]; // delete needed
+		char *cgiEnv[cgi.envMap.size() + 1];
+		cgiEnv[cgi.envMap.size()] = NULL;
+		int i = 0;
+		for (std::map<std::string, std::string>::iterator iter = cgi.envMap.begin(); iter != cgi.envMap.end(); ++iter)
+		{
+			cgiEnv[i] = strdup((iter->first + "=" + iter->second).c_str());
+			// std::cout << cgiEnv[i] << "\n";
+			i++;
+		}
+
+		int fds[2];
+		pipe(fds);
+
 		int pid = fork();
-		waitpid(pid, NULL, 0);
+
 		if (pid == 0)
 		{
-			int fd = open(filePath.c_str(), O_WRONLY | O_CREAT, 0744);
-			dup2(fd, STDOUT_FILENO);
-			char **args = new char *[sizeof(char *) * 4];
-			args[0] = strdup("/usr/local/bin/python3");
-			args[1] = strdup(execPath.c_str());
-			args[2] = strdup(infoClient.req.t_result.body.c_str());
-			args[3] = NULL;
+			// std::cerr << "CHILD" << std::endl;
+			close(fds[1]);
+			dup2(fds[0], STDIN_FILENO);
+			close(fds[0]);
+			int resFd = open(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0744);
+			if (resFd < 0)
+				std::cerr << "Error : resFd open()\n";
+			dup2(resFd, STDOUT_FILENO);
+			close(resFd);
 
-			// char **env = (char **)malloc(sizeof(char *) * 4);
-			// env[0] = strdup("REQUEST_METHOD=POST");
-			// env[1] = strdup("SERVER_PROTOCOL=HTTP/1.1");
-			// env[2] = strdup("PATH_INFO= ~~~ / ~~");
-			// env[3] = NULL;
-			execve("/usr/local/bin/python3", args, NULL);
-			// execve(execPath.c_str(), args, NULL);
-			perror("execute failed!!");
-			exit(EXIT_FAILURE);
+			execve(execPath.c_str(), args, cgiEnv);
+
+			exit(EXIT_SUCCESS);
 		}
 		else
 		{
-			resMsg = resMsgHeader(infoClient) + "\n" + resMsgBody(filePath);
-			std::cout << " response to client : " << clientSocket << "\n";
-			long valWrite = write(clientSocket, resMsg.c_str(), resMsg.size());
-			if (valWrite == (long)resMsg.size())
-				std::cout << "SERVER RESPONSE SENT\n\n\n\n";
-			// unlink(filePath.c_str());
-			return ;
+
+			// int tmpFd = open(tmpFilePath.c_str(), O_RDONLY);
+			// char buff[1024] = {0};
+
+			// // std::cerr << "OPEN" << std::endl;
+			// int n = read(tmpFd, buff, sizeof(buff));
+			// close(tmpFd);
+			// unlink(tmpFilePath.c_str()); // if you want to check tmpfile, delete it.
+
+			// if (n < 0)
+			// 	std::cerr << "Error : read()\n";
+			//infoClient.req.t_result.body.c_str()
+			char buff[1024] = {0};
+			strcpy(buff,  infoClient.req.t_result.body.c_str());
+
+
+
+			close(fds[0]);
+			write(fds[1], buff, sizeof(buff));
+			// std::cerr << "		test\n" << buff << "\n\n";
+			close(fds[1]);
+
+			waitpid(pid, NULL, 0);
+
+			/* msg to client */
+			resMsg = resMsgHeader(infoClient);
+			resMsg += "\n" + resMsgBody(filePath);
+
+			unlink(filePath.c_str()); // if you want to check output html, delete it
 		}
 	}
 	else
@@ -365,13 +687,94 @@ Response::makeResponseMsg(InfoClient &infoClient)
 		resMsg = makeResponseERR();
 	}
 
-	(void)infoClient; // to be used
-
 	std::cout << " response to client : " << clientSocket << "\n";
 	long valWrite = write(clientSocket, resMsg.c_str(), resMsg.size());
 	if (valWrite == (long)resMsg.size())
 		std::cout << "SERVER RESPONSE SENT\n";
 }
+
+
+// void
+// Response::makeResponseMsg(InfoClient &infoClient)
+// {
+// 	int clientSocket = infoClient._clientSocket;
+// 	std::cout << "makeResponseMsg "<< std::endl;
+
+// 	std::string resMsg = "";
+// 	if (infoClient.req.t_result.method == GET)
+// 	{
+// 		resMsg = makeResponseGET(infoClient);
+// 		std::cout << "		------result msg------- : \n" << resMsg << "\n";
+
+// 	}
+// 	else if (infoClient.req.t_result.method == POST)
+// 	{
+// 		char cwd[1024];
+// 		getcwd(cwd, 1024);
+// 		std::string cwdPath(cwd);
+// 		std::string execPath = "";
+// 		std::string filePath = "";
+// 		if (infoClient.req.t_result.target == "/www/cgi-bin/submit.py")
+// 		{
+// 			execPath = cwdPath + "/www/cgi-bin/submit.py";
+// 			filePath = cwdPath + "/submit.html";
+// 		}
+// 		else if (infoClient.req.t_result.target == "/www/cgi-bin/upload.py")
+// 		{
+// 			std::cerr << "\n\nfor uploading \n\n";
+// 			execPath = cwdPath + "/www/cgi-bin/upload.py";
+// 			filePath = cwdPath + "/upload.html";
+// 			std::string uploadPath = cwdPath + "/text.txt";
+
+// 			std::cout << "\n\n" << uploadPath << "\n" << infoClient.req.t_result.body << "\n\n";
+// 			int upFd = open(uploadPath.c_str(), O_WRONLY | O_CREAT, 0744);
+// 			write(upFd, infoClient.req.t_result.body.c_str(), infoClient.req.t_result.body.size());
+// 		}
+// 		int pid = fork();
+// 		waitpid(pid, NULL, 0);
+// 		if (pid == 0)
+// 		{
+// 			int fd = open(filePath.c_str(), O_WRONLY | O_CREAT, 0744);
+// 			dup2(fd, STDOUT_FILENO);
+// 			char **args = new char *[sizeof(char *) * 4];
+// 			args[0] = strdup("/usr/local/bin/python3");
+// 			args[1] = strdup(execPath.c_str());
+// 			args[2] = strdup(infoClient.req.t_result.body.c_str());
+// 			args[3] = NULL;
+
+// 			// char **env = (char **)malloc(sizeof(char *) * 4);
+// 			// env[0] = strdup("REQUEST_METHOD=POST");
+// 			// env[1] = strdup("SERVER_PROTOCOL=HTTP/1.1");
+// 			// env[2] = strdup("PATH_INFO= ~~~ / ~~");
+// 			// env[3] = NULL;
+// 			execve("/usr/local/bin/python3", args, NULL);
+// 			// execve(execPath.c_str(), args, NULL);
+// 			perror("execute failed!!");
+// 			exit(EXIT_FAILURE);
+// 		}
+// 		else
+// 		{
+// 			resMsg = resMsgHeader(infoClient) + "\n" + resMsgBody(filePath);
+// 			std::cout << " response to client : " << clientSocket << "\n";
+// 			long valWrite = write(clientSocket, resMsg.c_str(), resMsg.size());
+// 			if (valWrite == (long)resMsg.size())
+// 				std::cout << "SERVER RESPONSE SENT\n\n\n\n";
+// 			// unlink(filePath.c_str());
+// 			return ;
+// 		}
+// 	}
+// 	else
+// 	{
+// 		resMsg = makeResponseERR();
+// 	}
+
+// 	(void)infoClient; // to be used
+
+// 	std::cout << " response to client : " << clientSocket << "\n";
+// 	long valWrite = write(clientSocket, resMsg.c_str(), resMsg.size());
+// 	if (valWrite == (long)resMsg.size())
+// 		std::cout << "SERVER RESPONSE SENT\n";
+// }
 
 void
 Response::initResponse(InfoClient &infoClient)
@@ -404,42 +807,7 @@ Response::startResponse(InfoClient &infoClient)
 	_result += infoClient.file.buffer;
 }
 
-bool
-Response::cgiFinder(InfoClient &infoClient)
-{
-	std::string str = infoClient.req.t_result.path;
-	//std::string str = "https://robodream.tistory.com/418.py";
-	size_t sub;
 
-	if ((sub = str.rfind(".")) != std::string::npos)
-		str = str.substr(sub);
-	else
-		return false;
-	if (infoClient._server->Cgi.find(str) == infoClient._server->Cgi.end())
-		return false;
-	return true;
-}
-
-bool
-Response::redirectionFinder(InfoClient &infoClient)
-{
-	std::string str = infoClient.req.t_result.path;
-	//std::string str = "https://robodream.tistory.com/redirectaa";
-	size_t sub;
-
-	if ((sub = str.rfind("/")) != std::string::npos)
-		str = str.substr(sub);
-	else
-		return false;
-
-	std::map< std::string, Location >::iterator it;
-	for (it = infoClient._server->Location.begin(); it != infoClient._server->Location.end(); it++)
-	{
-		if (it->first == str && it->second.returnType == 301)
-			return true;
-	}
-	return false;
-}
 
 
 
@@ -479,4 +847,41 @@ Response::redirectionFinder(InfoClient &infoClient)
 // Response::httpRes500()
 // {}
 
+
+bool
+Response::cgiFinder()
+{
+	std::string str = client->req.t_result.path;
+	//std::string str = "https://robodream.tistory.com/418.py";
+	size_t sub;
+
+	if ((sub = str.rfind(".")) != std::string::npos)
+		str = str.substr(sub);
+	else
+		return false;
+	if (client->_server->Cgi.find(str) == client->_server->Cgi.end())
+		return false;
+	return true;
+}
+
+bool
+Response::redirectionFinder()
+{
+	std::string str = client->req.t_result.path;
+	//std::string str = "https://robodream.tistory.com/redirectaa";
+	size_t sub;
+
+	if ((sub = str.rfind("/")) != std::string::npos)
+		str = str.substr(sub);
+	else
+		return false;
+
+	std::map< std::string, Location >::iterator it;
+	for (it = client->_server->Location.begin(); it != client->_server->Location.end(); it++)
+	{
+		if (it->first == str && it->second.returnType == 301)
+			return true;
+	}
+	return false;
+}
 

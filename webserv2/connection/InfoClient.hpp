@@ -35,6 +35,7 @@ class InfoClient
 
 
 
+
 	public:
 		InfoClient()
 		: _clientSocket(-1), _server(nullptr), reqMsg(""), isCgi(false) {}

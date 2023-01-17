@@ -254,7 +254,7 @@ Response::clearResult()
 void
 Response::makeErrorResponseMsg(InfoClient &infoClient, int errorCode)
 {
-	std::cout << "makeErrorResponseMsg "<< std::endl;
+	std::cout << "makeErrorResponseMsg :"<< infoClient._clientSocket <<std::endl;
 	this->status = rError;
 	std::string errorPath = "";
 

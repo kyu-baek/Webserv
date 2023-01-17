@@ -38,6 +38,7 @@ class InfoClient
 	public:
 		InfoClient()
 		: _clientSocket(-1), _server(nullptr), reqMsg(""), isCgi(false) {}
+		
 		void clear() {
 			file.buffer.clear();
 			file.fd = -1;

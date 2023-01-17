@@ -55,11 +55,11 @@ WebServer::openServer()
 void
 WebServer::runServer()
 {
-	m_connection.eventMan.declareKqueue();
+	m_connection.declareKqueue();
 	std::vector<InfoServer>::iterator it;
 	for (it = m_serverVector.begin(); it != m_serverVector.end(); ++it)
 	{
-		m_connection.eventMan.enrollEventToChangeList(it->m_serverSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+		m_connection.enrollEventToChangeList(it->m_serverSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	}
 	m_connection.eventLoop();
 }

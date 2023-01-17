@@ -8,15 +8,12 @@
 
 class Multiplex;
 
-class Connection //: public Multiplex
+class Connection : public Multiplex
 {
 	public:
 		std::map<int, InfoServer> m_serverFdMap;
 		std::map<int, InfoClient> m_clientFdMap;
 		std::map<int, InfoFile> m_fileFdMap;
-
-	public:
-		Multiplex eventMan;
 
 	private:
 		int eventNum;
@@ -24,7 +21,7 @@ class Connection //: public Multiplex
 	public:
 		Connection()
 		: eventNum(0){
-			eventMan.currEvent = NULL;
+			currEvent = NULL;
 		}
 	public:
 		void eventLoop();

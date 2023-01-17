@@ -402,6 +402,7 @@ Response::startResponse(InfoClient &infoClient)
 	_result += "Content-Length : " + std::to_string(getContentLength()) + CRLF;
 	_result += "\n";
 	_result += infoClient.file.buffer;
+	_totalBytes = _result.size();
 }
 
 bool

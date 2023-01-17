@@ -133,6 +133,9 @@ void Connection::connectionLoop()
 							_clientMap[currEvent->ident].reqMsg.assign(BUFFER_SIZE, 0);
 						}
 						else {
+							std::cout << "\n\n\n\n";
+							_clientMap[currEvent->ident].req.printRequest();
+							std::cout << "\n\n";
 							_responserMap[currEvent->ident].responseToClient(currEvent->ident, _clientMap[currEvent->ident]);
 							if (_responserMap[currEvent->ident].status == Response::rComplete) {
 								std::cout << "Response::rComplete\n";

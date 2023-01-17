@@ -1,0 +1,14 @@
+{
+	"files.associations": {
+		"__split_buffer": "cpp",
+		"deque": "cpp",
+		"list": "cpp",
+		"string": "cpp",
+		"vector": "cpp",
+		"chrono": "cpp",
+		"ctime": "cpp",
+		"map": "cpp",
+		"set": "cpp",
+		"unordered_map": "cpp"
+	}
+}

@@ -3,7 +3,7 @@
 
 int main(int argc, char** argv)
 {
-	Config config("configFiles/default.conf");
+	Config config("webServer/config/configFiles/default.conf");
 
 	if (argc == 2) {
 		std::string path = argv[1];

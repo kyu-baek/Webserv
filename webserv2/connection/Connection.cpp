@@ -65,7 +65,7 @@ void Connection::connectionLoop()
 			}
 			if (currEvent->filter == EVFILT_TIMER)
 			{
-				////std::cout << "\n\n EVFILT_TIMER : " << currEvent->ident << "\n";
+				std::cout << "\n\n EVFILT_TIMER : " << currEvent->ident << "\n";
 				if (_clientMap.find(currEvent->ident) != _clientMap.end())
 				{
 					clearTimeoutedAccess(currEvent->ident);
@@ -239,11 +239,10 @@ void Connection::connectionLoop()
 						//std::cout << "Response Comple\n";
 						_eventManager.enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 						_eventManager.enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
-						// _responserMap[currEvent->ident].clearResInfo();
-						// _responserMap[currEvent->ident].clearResult();
-						_responserMap.erase(_responserMap.find(currEvent->ident));
-						if (_responserMap.find(currEvent->ident) != _responserMap.end())
-							std::cout << "not erased\n\n";
+						
+						//Clear Previous Data
+						_responserMap[currEvent->ident].clearResInfo();
+						_responserMap[currEvent->ident].clearResult();
 						_clientMap.find(currEvent->ident)->second.clear();
 
 						break;

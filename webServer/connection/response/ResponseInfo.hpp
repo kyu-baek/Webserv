@@ -16,6 +16,8 @@
 - <html> </html>
 =======================================================*/
 
+#include "../../InfoFd.hpp"
+
 class ResponseInfo
 {
 	protected:

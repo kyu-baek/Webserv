@@ -9,21 +9,15 @@ Connection::eventLoop()
 		clearChangeList();
 		for (int i = 0; i < eventNum; ++i)
 		{
-			switch (currEvent->filter)
-			{
-			case EVFILT_TIMER:
+			currEvent = &getEventList()[i];
+			if (currEvent->filter == EVFILT_TIMER)
 				handleTimeOut();
-				break;
-			case EVFILT_READ:
+			else if (currEvent->filter == EVFILT_READ)
 				handleReadEvent();
-				break;
-			case EVFILT_WRITE:
+			else if (currEvent->filter == EVFILT_WRITE)
 				handleWriteEvent();
-			default:
-				if (currEvent->flags & EV_ERROR)
-					handleErrorEvent();
-				break;
-			}
+			else if (currEvent->flags & EV_ERROR)
+				handleErrorEvent();
 		}
 	}
 }
@@ -82,6 +76,7 @@ Connection::handleReadEvent()
 		{
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 			{
+				m_clientFdMap[currEvent->ident].m_responser->makeResponse();
 
 			}
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseError)
@@ -89,6 +84,12 @@ Connection::handleReadEvent()
 
 			}
 		}
+	}
+
+	/* File Event Case */
+	if (m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end())
+	{
+		// int res = readFile(filename);
 	}
 }
 
@@ -119,5 +120,6 @@ Connection::initInfoClient(int clientSocket)
 	InfoClient tmpInfo;
 	tmpInfo.m_socketFd = clientSocket;
 	tmpInfo.m_server = &m_serverFdMap[currEvent->ident];
+	tmpInfo.m_responser = new Response();
 	m_clientFdMap.insert(std::pair<int, InfoClient>(clientSocket, tmpInfo));
 }

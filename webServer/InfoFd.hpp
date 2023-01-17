@@ -5,6 +5,7 @@
 #include "includes/Define.hpp"
 #include "connection/request/Request.hpp"
 #include "config/configParser/Config_struct.hpp"
+#include "connection/response/Response.hpp"
 
 class Request;
 class Response;
@@ -18,7 +19,7 @@ class InfoClient
 		int m_socketFd;
 		InfoServer *m_server;
 		Request reqParser;
-		Response *responser;
+		Response *m_responser;
 
 	public:
 		InfoClient()
@@ -51,7 +52,7 @@ class InfoServer
 class InfoFile
 {
 	public:
-		InfoClient m_client;
+		InfoClient *m_client;
 };
 
 

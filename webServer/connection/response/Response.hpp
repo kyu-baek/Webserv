@@ -5,14 +5,15 @@
 #include "../../includes/libraries.hpp"
 #include "../../InfoFd.hpp"
 #include "ResponseInfo.hpp"
-
 class InfoClient;
 
 class Response : public ResponseInfo
 {
 	public:
-		InfoClient infoClient;
+		InfoClient *infoClient;
+
 	public:
+		void makeResponse();
 
 };
 

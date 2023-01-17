@@ -41,8 +41,8 @@ Multiplex::clearChangeList()
 	m_changeList.clear();
 }
 
-struct kevent const *
-Multiplex::getEventList() const
+struct kevent *
+Multiplex::getEventList()
 {
 	return (m_eventList);
 }

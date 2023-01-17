@@ -1,6 +1,6 @@
 NAME		=	webserv
 CXX			=	c++
-CXXFLAGS	=	-Wall -Wextra -Werror -std=c++98 -pedantic
+CXXFLAGS	=	-Wall -Wextra -Werror -std=c++98 -pedantic -g3 -fsanitize=address
 SRCS		=	main.cpp \
 				webServer/config/configParser/Config.cpp \
 				webServer/config/configParser/BaseServer.cpp \

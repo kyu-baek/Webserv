@@ -77,6 +77,21 @@ Connection::handleReadEvent()
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 			{
 				m_clientFdMap[currEvent->ident].m_responser->makeResponse();
+				// if (GET)
+				// {
+				// 	int fileFd = openStaticHtml(target);
+				// 	m_fileFdMap.insert();
+				// 	enrollEventToChangeList(fileFd, EVFILT_READ)~~;
+				// 	enrollEventToChangeList(currEvent->ident, REMOVE);
+				// }
+				// if (reqParser ~~ == POST)
+				// {
+
+				// }
+				// if (DELETE)
+				// {
+
+				// }
 
 			}
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseError)
@@ -87,10 +102,13 @@ Connection::handleReadEvent()
 	}
 
 	/* File Event Case */
-	if (m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end())
-	{
-		// int res = readFile(filename);
-	}
+	// if (m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end())
+	// {
+	// 	// int res = readFile(filename);
+	// 	std::string bodyContents += readBuffer();
+	// 	std::string header = makeHeader();
+	// 	std::string fullRes = header + bodyContents;
+	// }
 }
 
 void
@@ -120,6 +138,6 @@ Connection::initInfoClient(int clientSocket)
 	InfoClient tmpInfo;
 	tmpInfo.m_socketFd = clientSocket;
 	tmpInfo.m_server = &m_serverFdMap[currEvent->ident];
-	tmpInfo.m_responser = new Response();
+	tmpInfo.m_responser = new Response(); //delete needed
 	m_clientFdMap.insert(std::pair<int, InfoClient>(clientSocket, tmpInfo));
 }

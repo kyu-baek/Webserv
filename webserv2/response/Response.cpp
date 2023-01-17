@@ -34,8 +34,8 @@ Response::responseToClient(int clientSocket, InfoClient &infoClient)
 		//cgi 객체 생성후 요청
 	}
 	else { //get
-		makeErrorResponseMsg(infoClient, 404);
-		//makeResponseMsg(infoClient);
+		// makeErrorResponseMsg(infoClient, 404);
+		makeResponseMsg(infoClient);
 	}
 	//sendReseponse(clientSocket);
 	//infoClient.req.clearRequest();

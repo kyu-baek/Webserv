@@ -30,6 +30,7 @@ void 		Request::updateStatus(int status, int pStatus) {
  */
 void	Request::parseMessage(std::string message)
 {
+	std::cout << "parsemessage\n\n";
 	t_result.orig += message;
 	_buf += message;
 	if (t_result.pStatus == pRequest)
@@ -37,7 +38,11 @@ void	Request::parseMessage(std::string message)
 	if (t_result.pStatus == pHeader)
 		parseHeader();
 	if (t_result.pStatus == pBody)
+	{
 		parseBody();
+			std::cout << "pBody\n\n";
+
+	}
 }
 
 /**
@@ -318,6 +323,8 @@ void	Request::parseBody()
 		return parseChunked();
 	if (_bodyLength == -1)	// message without content
 	{
+		std::cout << "\n\npComplete 111111\n\n";
+
 		t_result.pStatus = pComplete;
 		return ;
 	}
@@ -330,6 +337,8 @@ void	Request::parseBody()
 	}
 	if (t_result.body.size() >= (unsigned long)_bodyLength)
 	{
+				std::cout << "\n\npComplete 2222\n\n";
+
 		t_result.pStatus = pComplete;
 		if (t_result.body.size() != (unsigned long)_bodyLength)
 			t_result.body.erase(_bodyLength); // should be checked
@@ -341,6 +350,7 @@ void	Request::parseBody()
  */
 void 	Request::parseChunked()
 {
+	std::cout << "parseChunked\n";
 	_chunkReady = true;
 	while (_chunkReady && t_result.pStatus == pBody)
 	{
@@ -357,6 +367,7 @@ void 	Request::parseChunked()
 void 	Request::getChunkSize()
 {
 	size_t	pos;
+	std::cout << "getChunkSize\n";
 
 	pos = _buf.find(CRLF);
 	if (pos == std::string::npos)
@@ -392,6 +403,7 @@ void 	Request::getChunkSize()
  */
 void	Request::getChunkMessage()
 {
+	
 	size_t	pos;
 
 	pos = _buf.find(CRLF);

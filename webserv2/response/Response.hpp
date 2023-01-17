@@ -55,7 +55,7 @@ private:
 		size_t _sentBytes;
 		size_t _totalBytes;
 
-		//InfoClient &infoClient;
+		InfoClient infoClient;
 
 public:
 	int status;

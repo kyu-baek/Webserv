@@ -23,7 +23,7 @@ class FileManage
 		InfoFile *m_infoFileptr;
 
 	public:
-		bool isValidStaticSrc(std::string targetPath);
+		bool isValidStaticSrc(std::string *targetPath);
 		int	readFile(int fd);
 
 	public:

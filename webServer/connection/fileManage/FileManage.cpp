@@ -1,11 +1,12 @@
 #include "FileManage.hpp"
 
 bool
-FileManage::isValidStaticSrc(std::string target)
+FileManage::isValidStaticSrc(std::string *target)
 {
-	if (target == "/")
-		target = "/index";
+	if (*target == "/")
+		*target = "index.html";
 	std::string staticPath = this->getCwdPath() + "/www/statics";
+	std::cout << "path : " << staticPath << std::endl;
 	DIR *dir = opendir(staticPath.c_str());
 	struct dirent *dirent = NULL;
 	while (true)
@@ -13,8 +14,9 @@ FileManage::isValidStaticSrc(std::string target)
 		dirent = readdir(dir);
 		if (!dirent)
 			break;
-		if (strcmp(dirent->d_name, (staticPath + target).c_str()) == SUCCESS)
+		if (strcmp(dirent->d_name, (*target).c_str()) == SUCCESS)
 		{
+			(*target).insert(0, "/");
 			return (true);
 		}
 	}

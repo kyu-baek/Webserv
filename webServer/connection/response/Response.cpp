@@ -17,7 +17,7 @@ Response::openResponse()
 		// 	write(m_infoClientPtr->m_socketFd, buff, sizeof(buff));
 		// 	return ;
 		// }
-		bool isFile = m_fileManagerPtr->isValidStaticSrc(m_infoClientPtr->reqParser.t_result.target);
+		bool isFile = m_fileManagerPtr->isValidStaticSrc(&m_infoClientPtr->reqParser.t_result.target);
 		std::cerr << "isFile :" << isFile << "\n";
 		if (isFile == true)
 		{
@@ -77,4 +77,50 @@ Response::startResponse()
 	m_resMsg += "\n";
 	m_resMsg += m_fileManagerPtr->m_file.buffer;
 	m_totalBytes = m_resMsg.size();
+}
+
+const char *
+Response::getSendResult() const
+{
+	return (this->m_resMsg.c_str() + this->m_sentBytes);
+}
+
+size_t
+Response::getSendResultSize() const
+{
+	return (this->m_totalBytes - this->m_sentBytes);
+}
+
+size_t
+Response::changePosition(int n)
+{
+	if (n > 0)
+	{
+		if (m_sentBytes + n >= m_totalBytes)
+			m_sentBytes = m_totalBytes;
+		else
+			m_sentBytes += n;
+	}
+	return (getSendResultSize());
+}
+
+int
+Response::sendResponse()
+{
+	size_t n = send(6, getSendResult(), getSendResultSize(), 0);
+
+	if (n < 0)
+		return SendError;
+	else if (changePosition(n) != 0)
+		return SendMaking;
+	else
+		return SendComplete;
+}
+
+void
+Response::clearResponseByte()
+{
+	m_resMsg.clear();
+	m_sentBytes = 0;
+	m_totalBytes = 0;
 }

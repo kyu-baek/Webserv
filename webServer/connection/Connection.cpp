@@ -51,6 +51,7 @@ Connection::handleReadEvent()
 		char buffer[BUFFER_SIZE + 1] = {0,};
 
 		ssize_t valRead = read(currEvent->ident, buffer, BUFFER_SIZE);
+
 		if (valRead == FAIL)
 		{
 			std::cerr << "	ERROR : read() in Client Event Case\n";
@@ -73,7 +74,7 @@ Connection::handleReadEvent()
 			buffer[valRead] = '\0';
 			m_clientFdMap[currEvent->ident].reqParser.makeRequest(buffer);
 		}
-		else if (valRead == 0)
+		if (valRead < BUFFER_SIZE)
 		{
 			m_clientFdMap[currEvent->ident].reqParser.printRequest();
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
@@ -81,11 +82,12 @@ Connection::handleReadEvent()
 				if (m_clientFdMap[currEvent->ident].status == ResNone)
 				{
 					m_clientFdMap[currEvent->ident].m_responserPtr->openResponse();
-					m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr->m_fileFdMapPtr = &m_fileFdMap;
+					//m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr->m_fileFdMapPtr = &m_fileFdMap;
 					int fileFd = m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_file.fd;
 					enrollEventToChangeList(fileFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-					fcntl(fileFd, F_SETFL, O_NONBLOCK);
+					//fcntl(fileFd, F_SETFL, O_NONBLOCK);
 					m_fileFdMap.insert(std::make_pair(m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_file.fd, *(m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr)));
+					m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr->m_fileFdMapPtr = &m_fileFdMap;
 				}
 			}
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseError)
@@ -111,9 +113,10 @@ Connection::handleReadEvent()
 			break;
 		case FileMaking:
 			// keep reading
-			//	//std::cout << "fMaking = " << _clientMap[_fdMap[currEvent->ident]].file.buffer << std::endl;
+			//	//std::cout << "fMaking = " << m_fileFdMap[_fdMap[currEvent->ident]].file.buffer << std::endl;
 			break;
 		case FileComplete:
+			enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 			if (m_fileFdMap[currEvent->ident].isCgi == false)
 			{
 				m_fileFdMap[currEvent->ident].m_infoClientPtr->m_responserPtr->startResponse();
@@ -137,7 +140,39 @@ Connection::handleReadEvent()
 void
 Connection::handleWriteEvent()
 {
-	//
+	/* write event */
+	if (currEvent->filter == EVFILT_WRITE)
+	{
+		std::cout << "\n\n WRITE EVENT : " << currEvent->ident << std::endl;
+		if (m_clientFdMap.find(currEvent->ident) != m_clientFdMap.end())
+		{
+			std::cout << "res add : " << m_clientFdMap[currEvent->ident].m_responserPtr <<std::endl;
+			int res = m_clientFdMap[currEvent->ident].m_responserPtr->sendResponse();
+			
+			switch (res)
+			{
+			case SendError:
+				// 500 error page open
+				// std::cout << "fError" << std::endl;
+				break;
+			case SendMaking:
+				// keep reading
+				//	//std::cout << "fMaking = " << m_fileFdMap[_fdMap[currEvent->ident]].file.buffer << std::endl;
+				break;
+			case SendComplete:
+					enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+					enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+					//make clear client info logic
+				break;
+
+			}
+
+			if (m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end())
+			{
+			}
+
+		}
+	}
 }
 
 void

@@ -33,4 +33,12 @@ enum
 	ResComplete = 2
 };
 
+enum
+{
+	SendError = -1,
+	SendNone = 0,
+	SendMaking = 1,
+	SendComplete = 2
+};
+
 #endif

@@ -12,16 +12,28 @@ class FileManage;
 class Response : public ResponseInfo
 {
 	public:
+		Response() : ResponseInfo(), m_totalBytes(0), m_sentBytes(0) {}
+
+	public:
 		InfoClient *m_infoClientPtr;
 		FileManage *m_fileManagerPtr;
 		std::string m_resMsg;
 		size_t m_totalBytes;
+		size_t m_sentBytes;
 
 
 	public:
 		void openResponse();
 		void initResponse();
 		void startResponse();
+	
+	public:
+		int sendResponse();
+		size_t changePosition(int n);
+		size_t getSendResultSize() const;
+		const char * getSendResult() const;
+		void clearResponseByte();
+
 };
 
 #endif

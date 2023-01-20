@@ -48,6 +48,7 @@ class ResponseInfo
 		void setContentLength(unsigned int len) { _contentLength = len; }
 		void setContentEncoding(std::string encod ) { _contentEncoding = encod; }
 		void setBody(std::string resBody) { _resBody = resBody; }
+		void setDate( ) { _date = timeStamp(); }
 		std::string getHttpVersion() {return (_httpVersion);}
 		int getStatusCode() { return (_statusCode); }
 		std::string getStatusMsg() { return (_statusMsg); }
@@ -79,6 +80,26 @@ class ResponseInfo
 				ss << "0";
 			ss << time->tm_sec << " GMT";
 			return (ss.str());
+		}
+
+		std::string getCwdPath()
+		{
+			char cwd[1024];
+			getcwd(cwd, 1024);
+			std::string cwdPath(cwd);
+			return (cwdPath);
+		}
+
+		void clearResInfo() {
+			_statusCode = 0;
+ 			_statusMsg= "";
+			_connection = "";
+			_date = "";
+			_contentType = "";
+			_transferEncoding = "";
+			_contentLength= 0;
+			_contentEncoding = "";
+			_resBody = "";
 		}
 
 	protected:

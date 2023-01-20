@@ -9,7 +9,8 @@ SRCS		=	main.cpp \
 				webServer/WebServer.cpp \
 				webServer/connection/Connection.cpp \
 				webServer/connection/response/Response.cpp \
-				webServer/connection/multiplex/Multiplex.cpp
+				webServer/connection/multiplex/Multiplex.cpp \
+				webServer/connection/fileManage/FileManage.cpp
 
 OBJS		=	$(SRCS:.cpp=.o)
 

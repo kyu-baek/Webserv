@@ -19,11 +19,14 @@ class InfoClient
 		int m_socketFd;
 		InfoServer *m_server;
 		Request reqParser;
-		Response *m_responser;
+		Response *m_responserPtr;
+
+	public:
+		int status;
 
 	public:
 		InfoClient()
-		: m_socketFd(-1), m_server(NULL) {}
+		: m_socketFd(-1), m_server(NULL), status(0) {}
 };
 
 class InfoServer
@@ -52,7 +55,10 @@ class InfoServer
 class InfoFile
 {
 	public:
-		InfoClient *m_client;
+		InfoClient *m_infoClientPtr;
+		std::string srcPath;
+		std::map<int, InfoFile> *m_fileFdMapPtr;
+		bool isCgi;
 };
 
 

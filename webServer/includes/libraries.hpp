@@ -24,5 +24,6 @@
 #include <sstream>
 #include <exception>
 #include <sys/stat.h>
+#include <dirent.h>
 
 #endif

@@ -22,7 +22,7 @@ Response::openResponse()
 		if (isFile == true)
 		{
 			srcPath = cwdPath + "/www/statics" + m_infoClientPtr->reqParser.t_result.target;
-			m_infoClientPtr->status = ResMaking;
+			m_infoClientPtr->status = Res::Making;
 			int fd = -1;
 			struct stat ss;
 			if (stat(srcPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true ||
@@ -110,11 +110,11 @@ Response::sendResponse()
 	size_t n = send(6, getSendResult(), getSendResultSize(), 0);
 
 	if (n < 0)
-		return SendError;
+		return Send::Error;
 	else if (changePosition(n) != 0)
-		return SendMaking;
+		return Send::Making;
 	else
-		return SendComplete;
+		return Send::Complete;
 }
 
 void

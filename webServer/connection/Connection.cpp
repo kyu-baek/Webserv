@@ -79,7 +79,7 @@ Connection::handleReadEvent()
 			m_clientFdMap[currEvent->ident].reqParser.printRequest();
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 			{
-				if (m_clientFdMap[currEvent->ident].status == ResNone)
+				if (m_clientFdMap[currEvent->ident].status == Res::None)
 				{
 					m_clientFdMap[currEvent->ident].m_responserPtr->openResponse();
 					//m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr->m_fileFdMapPtr = &m_fileFdMap;
@@ -107,15 +107,15 @@ Connection::handleReadEvent()
 		// std::string fullRes = header + bodyContents;
 		switch (res)
 		{
-		case FileError:
+		case File::Error:
 			// 500 error page open
 			// std::cout << "fError" << std::endl;
 			break;
-		case FileMaking:
+		case File::Making:
 			// keep reading
 			//	//std::cout << "fMaking = " << m_fileFdMap[_fdMap[currEvent->ident]].file.buffer << std::endl;
 			break;
-		case FileComplete:
+		case File::Complete:
 			enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 			if (m_fileFdMap[currEvent->ident].isCgi == false)
 			{
@@ -148,18 +148,18 @@ Connection::handleWriteEvent()
 		{
 			std::cout << "res add : " << m_clientFdMap[currEvent->ident].m_responserPtr <<std::endl;
 			int res = m_clientFdMap[currEvent->ident].m_responserPtr->sendResponse();
-			
+
 			switch (res)
 			{
-			case SendError:
+			case Send::Error:
 				// 500 error page open
 				// std::cout << "fError" << std::endl;
 				break;
-			case SendMaking:
+			case Send::Making:
 				// keep reading
 				//	//std::cout << "fMaking = " << m_fileFdMap[_fdMap[currEvent->ident]].file.buffer << std::endl;
 				break;
-			case SendComplete:
+			case Send::Complete:
 					enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 					enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 					//make clear client info logic

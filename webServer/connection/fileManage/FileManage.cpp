@@ -36,7 +36,7 @@ FileManage::readFile(int fd)
 		close(fd);
 		m_infoFileptr->m_fileFdMapPtr->erase(fd);
 		m_file.buffer.clear();
-		return FileError;
+		return File::Error;
 	}
 	m_file.buffer += std::string(buffer, size);
 	m_file.size += size;
@@ -44,7 +44,7 @@ FileManage::readFile(int fd)
 	{
 		// close(fd);
 		// _fdMap.erase(fd);
-		return FileComplete;
+		return File::Complete;
 	}
-	return FileMaking;
+	return File::Making;
 }

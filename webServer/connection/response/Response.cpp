@@ -6,12 +6,11 @@ Response::openResponse()
 	std::string cwdPath = this->getCwdPath();
 	std::string srcPath = "";
 
-	bool isFile = m_fileManagerPtr->isValidStaticSrc(&m_infoClientPtr->reqParser.t_result.target);
+	int isFile = m_fileManagerPtr->isValidStaticSrc(&m_infoClientPtr->reqParser.t_result.target);
 	
 	if (m_infoClientPtr->reqParser.t_result.method == GET)
 	{
-		std::cerr << "GET RESPONSE\n";
-	
+		std::cerr << "GET RESPONSE\n";	
 		std::cerr << "isFile :" << isFile << "\n";
 		if (isFile == true)
 		{
@@ -19,9 +18,9 @@ Response::openResponse()
 			m_infoClientPtr->status = Res::Making;
 			int fd = -1;
 			struct stat ss;
-			if (stat(srcPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true ||
-				(fd = open(srcPath.c_str(), O_RDONLY)) == -1)
-				std::cout << "errorPath failier" << std::endl;
+			std::cout << "srcPath : "<<srcPath << std::endl;
+			if (stat(srcPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true || (fd = open(srcPath.c_str(), O_RDONLY)) == -1)
+				isFile = 500;
 			else
 			{
 				m_fileManagerPtr->m_file.fd = fd;
@@ -30,7 +29,7 @@ Response::openResponse()
 				m_fileManagerPtr->m_infoFileptr->srcPath = srcPath;
 			}
 		}
-		if (isFile == false)
+		if (isFile == 404 || isFile == 500)
 		{
 			std::cerr << "	NO FILE FOUND\n";
 			//404 response
@@ -39,7 +38,7 @@ Response::openResponse()
 
 	if (m_infoClientPtr->reqParser.t_result.method == POST)
 	{
-
+		
 	}
 }
 
@@ -103,7 +102,7 @@ Response::changePosition(int n)
 int
 Response::sendResponse()
 {
-	size_t n = send(6, getSendResult(), getSendResultSize(), 0);
+	size_t n = send(m_infoClientPtr->m_socketFd, getSendResult(), getSendResultSize(), 0);
 
 	if (n < 0)
 		return Send::Error;

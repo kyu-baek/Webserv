@@ -23,8 +23,9 @@ class FileManage
 		InfoFile *m_infoFileptr;
 
 	public:
-		bool isValidStaticSrc(std::string *targetPath);
+		int isValidStaticSrc(std::string *targetPath);
 		int	readFile(int fd);
+		void clearFileEvent();
 
 	public:
 		std::string getCwdPath()

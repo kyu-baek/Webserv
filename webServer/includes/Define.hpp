@@ -9,7 +9,7 @@
 
 #define NONE -1
 
-#define TIMER 60
+#define TIMER 600000000
 
 enum {
 	GET,

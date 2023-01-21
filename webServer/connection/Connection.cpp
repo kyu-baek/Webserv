@@ -35,6 +35,9 @@ Connection::handleReadEvent()
 	/* Server Event Case */
 	if (m_serverFdMap.find(currEvent->ident) != m_serverFdMap.end())
 	{
+		std::vector<int>::iterator it = m_serverFdMap[currEvent->ident].m_clients.begin();
+		for (; it != m_serverFdMap[currEvent->ident].m_clients.end(); it++)
+			std::cout << "data = "<<*it << std::endl;
 		int clientSocket = accept(currEvent->ident, \
 								(sockaddr *)&m_serverFdMap[currEvent->ident].m_serverAddr, \
 								&m_serverFdMap[currEvent->ident].m_serverAddrLen);
@@ -42,13 +45,15 @@ Connection::handleReadEvent()
 			std::cerr << "	ERROR : accept() in Server Event Case\n";
 		setNonBlock(clientSocket);
 		enrollEventToChangeList(clientSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-		enrollEventToChangeList(clientSocket, EVFILT_TIMER, EV_ADD | EV_ONESHOT, NOTE_SECONDS, TIMER, NULL);
+		//enrollEventToChangeList(clientSocket, EVFILT_TIMER, EV_ADD | EV_ONESHOT, NOTE_SECONDS, TIMER, NULL);
 		initInfoClient(clientSocket);
+		std::cout << "\nConnect SERVER : " << clientSocket << std::endl;
 	}
 
 	/* Client Event Case */
 	if (m_clientFdMap.find(currEvent->ident) != m_clientFdMap.end())
 	{
+		//std::cout << "Client Event Case : " << currEvent->ident << std::endl;
 		char buffer[BUFFER_SIZE + 1] = {0,};
 
 		ssize_t valRead = read(currEvent->ident, buffer, BUFFER_SIZE);
@@ -72,6 +77,7 @@ Connection::handleReadEvent()
 		}
 		else if (valRead > 0)
 		{
+			std::cout << "reading : " << currEvent->ident << std::endl;
 			buffer[valRead] = '\0';
 			m_clientFdMap[currEvent->ident].reqParser.makeRequest(buffer);
 			m_clientFdMap[currEvent->ident].status = Res::None;
@@ -90,6 +96,7 @@ Connection::handleReadEvent()
 						enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 						enrollEventToChangeList(fileFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 						fcntl(fileFd, F_SETFL, O_NONBLOCK);
+						std::cout << "file fd : " << fileFd << std::endl;
 						m_fileFdMap.insert(std::make_pair(fileFd, *(m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr)));
 						m_fileFdMap[fileFd].m_fileManagerPtr = m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr;
 						m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr->m_fileFdMapPtr = &m_fileFdMap;

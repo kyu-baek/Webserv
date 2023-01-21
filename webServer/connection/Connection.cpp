@@ -86,7 +86,8 @@ Connection::handleReadEvent()
 					int fileFd = m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_file.fd;
 					enrollEventToChangeList(fileFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 					//fcntl(fileFd, F_SETFL, O_NONBLOCK);
-					m_fileFdMap.insert(std::make_pair(m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_file.fd, *(m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr)));
+					m_fileFdMap.insert(std::make_pair(fileFd, *(m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr)));
+					m_fileFdMap[fileFd].m_fileManagerPtr = m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr;
 					m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr->m_fileFdMapPtr = &m_fileFdMap;
 				}
 			}
@@ -101,7 +102,7 @@ Connection::handleReadEvent()
 	/* File Event Case */
 	if (m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end())
 	{
-		int res = m_fileFdMap[currEvent->ident].m_infoClientPtr->m_responserPtr->m_fileManagerPtr->readFile(currEvent->ident);
+		int res = m_fileFdMap[currEvent->ident].m_fileManagerPtr->readFile(currEvent->ident);
 		// std::string bodyContents += readBuffer();
 		// std::string header = makeHeader();
 		// std::string fullRes = header + bodyContents;

@@ -6,12 +6,14 @@
 #include "connection/request/Request.hpp"
 #include "config/configParser/Config_struct.hpp"
 #include "connection/response/Response.hpp"
+#include "connection/fileManage/FileManage.hpp"
 
 class Request;
 class Response;
 class InfoClient;
 class InfoServer;
 class InfoFile;
+class FileManage;
 
 class InfoClient
 {
@@ -56,8 +58,10 @@ class InfoFile
 {
 	public:
 		InfoClient *m_infoClientPtr;
+		FileManage *m_fileManagerPtr;
 		std::string srcPath;
 		std::map<int, InfoFile> *m_fileFdMapPtr;
+
 		bool isCgi;
 };
 

@@ -1,19 +1,17 @@
 #include "FileManage.hpp"
 
 int
-FileManage::isValidStaticSrc(std::string *target)
+FileManage::isValidStaticSrc(std::string &target)
 {
-	if (target == NULL)
-		return (-1);
-	if (*target == "/" || *target == "/home")
-		*target = "index.html";
-	else if (*target == "/submit")
-		*target = "submit.html";
-	else if (*target == "/upload")
-		*target = "upload.html";
-	else if (*target == "/server")
-		*target = "server.html";
-	else if (*target == "/favicon.ico")
+	if (target == "/" || target == "/home")
+		target = "index.html";
+	else if (target == "/submit")
+		target = "submit.html";
+	else if (target == "/upload")
+		target = "upload.html";
+	else if (target == "/server")
+		target = "server.html";
+	else if (target == "/favicon.ico")
 		return (-1);
 
 	std::string staticPath = this->getCwdPath() + "/www/statics";
@@ -25,9 +23,9 @@ FileManage::isValidStaticSrc(std::string *target)
 		dirent = readdir(dir);
 		if (!dirent)
 			break;
-		if (strcmp(dirent->d_name, (*target).c_str()) == SUCCESS)
+		if (strcmp(dirent->d_name, (target).c_str()) == SUCCESS)
 		{
-			(*target).insert(0, "/");
+			(target).insert(0, "/");
 			return (1);
 		}
 	}

@@ -6,7 +6,7 @@ Response::openResponse()
 	std::string cwdPath = this->getCwdPath();
 	std::string srcPath = "";
 
-	int isFile = m_fileManagerPtr->isValidStaticSrc(&m_infoClientPtr->reqParser.t_result.target);
+	int isFile = m_fileManagerPtr->isValidStaticSrc(m_infoClientPtr->reqParser.t_result.target);
 	if (isFile == -1)
 		return ;
 

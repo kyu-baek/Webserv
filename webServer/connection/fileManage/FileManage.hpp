@@ -23,14 +23,14 @@ class FileManage
 		InfoFile *m_infoFileptr;
 
 	public:
-		int isValidStaticSrc(std::string *targetPath);
+		int isValidStaticSrc(std::string &targetPath);
 		int	readFile(int fd);
 		void clearFileEvent();
 
 	public:
 		std::string getCwdPath()
 		{
-			char cwd[1024];
+			char cwd[1024] = {0,};
 			getcwd(cwd, 1024);
 			std::string cwdPath(cwd);
 			return (cwdPath);

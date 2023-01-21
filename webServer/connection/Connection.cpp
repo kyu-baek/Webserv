@@ -74,13 +74,13 @@ Connection::handleReadEvent()
 		{
 			buffer[valRead] = '\0';
 			m_clientFdMap[currEvent->ident].reqParser.makeRequest(buffer);
-			m_clientFdMap[currEvent->ident].status = Send::None;
+			m_clientFdMap[currEvent->ident].status = Res::None;
 		}
 		if (valRead < BUFFER_SIZE)
 		{
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 			{
-				if (m_clientFdMap[currEvent->ident].status == Send::None)
+				if (m_clientFdMap[currEvent->ident].status == Res::None)
 				{
 					// m_clientFdMap[currEvent->ident].reqParser.printRequest();
 					m_clientFdMap[currEvent->ident].m_responserPtr->openResponse();
@@ -175,10 +175,12 @@ Connection::handleWriteEvent()
 			case Send::Error:
 				// 500 error page open
 				// std::cout << "fError" << std::endl;
+				m_clientFdMap[currEvent->ident].status = Res::None;
 				break;
 			case Send::Making:
 				// keep reading
 				//	//std::cout << "fMaking = " << m_fileFdMap[_fdMap[currEvent->ident]].file.buffer << std::endl;
+				m_clientFdMap[currEvent->ident].status = Res::Making;
 				break;
 			case Send::Complete:
 					enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
@@ -186,7 +188,8 @@ Connection::handleWriteEvent()
 					m_clientFdMap[currEvent->ident].m_responserPtr->clearResInfo();
 					m_clientFdMap[currEvent->ident].m_responserPtr->clearResponseByte();
 					m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->clearFileEvent();
-
+					m_clientFdMap[currEvent->ident].status = Res::Complete;
+					m_clientFdMap[currEvent->ident].reqParser.clearRequest();
 					//make clear client info logic
 				break;
 

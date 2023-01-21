@@ -82,10 +82,9 @@ Connection::handleReadEvent()
 				if (m_clientFdMap[currEvent->ident].status == Res::None)
 				{
 					m_clientFdMap[currEvent->ident].m_responserPtr->openResponse();
-					//m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr->m_fileFdMapPtr = &m_fileFdMap;
 					int fileFd = m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_file.fd;
 					enrollEventToChangeList(fileFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-					//fcntl(fileFd, F_SETFL, O_NONBLOCK);
+					fcntl(fileFd, F_SETFL, O_NONBLOCK);
 					m_fileFdMap.insert(std::make_pair(fileFd, *(m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr)));
 					m_fileFdMap[fileFd].m_fileManagerPtr = m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr;
 					m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr->m_fileFdMapPtr = &m_fileFdMap;

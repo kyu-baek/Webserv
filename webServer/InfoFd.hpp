@@ -41,6 +41,12 @@ class InfoServer
 		unsigned int m_serverAddrLen;
 		std::string m_requestMsg;
 		std::vector<int> m_clients;
+
+	public:
+		std::map<std::string, std::vector<int> > m_errorPages;
+		std::map<std::string, Location> m_location;
+		std::map<std::string, CgiConfig> m_cgi;
+
 	public:
 		InfoServer &operator=(InfoServer const &rhs)
 		{

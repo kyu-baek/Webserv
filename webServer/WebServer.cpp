@@ -9,14 +9,18 @@ WebServer::WebServer(Config &config)
 		InfoServer tmpInfo;
 
 		tmpInfo.m_serverSocket = NONE;
-		tmpInfo.m_ipAddress = it.base()->getBServer().host;
-		tmpInfo.m_port = it.base()->getBServer().port;
+		tmpInfo.m_ipAddress = it->getBServer().host;
+		tmpInfo.m_port = it->getBServer().port;
 		tmpInfo.m_serverAddr.sin_family = AF_INET; // ip v4
 		tmpInfo.m_serverAddr.sin_port = htons(tmpInfo.m_port);
 		tmpInfo.m_serverAddr.sin_addr.s_addr = inet_addr(tmpInfo.m_ipAddress.c_str()); // inet_addr converts 'char const *' to 'unsigned long' in network byte order
 		tmpInfo.m_serverAddrLen = sizeof(tmpInfo.m_serverAddr);
 		memset(tmpInfo.m_serverAddr.sin_zero, 0, sizeof(tmpInfo.m_serverAddr.sin_zero)); // it's a buffer only needed to convert 'sockaddr_in' type to 'sockaddr' type, which is larger type.
-
+		
+		tmpInfo.m_errorPages = it->getBServer().errorPages;
+		tmpInfo.m_location = it->getBLocation();
+		tmpInfo.m_cgi = it->getBCgi();
+		
 		m_serverVector.push_back(tmpInfo);
 	}
 }

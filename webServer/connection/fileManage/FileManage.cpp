@@ -5,6 +5,11 @@ FileManage::isValidStaticSrc(std::string *target)
 {
 	if (*target == "/")
 		*target = "index.html";
+	else if (*target == "/sumit")
+		*target = "submit.html";
+	else if (*target == "/upload")
+		*target = "upload.html";
+
 	std::string staticPath = this->getCwdPath() + "/www/statics";
 	std::cout << "path : " << staticPath << std::endl;
 	DIR *dir = opendir(staticPath.c_str());

@@ -5,19 +5,13 @@ Response::openResponse()
 {
 	std::string cwdPath = this->getCwdPath();
 	std::string srcPath = "";
+
+	bool isFile = m_fileManagerPtr->isValidStaticSrc(&m_infoClientPtr->reqParser.t_result.target);
+	
 	if (m_infoClientPtr->reqParser.t_result.method == GET)
 	{
 		std::cerr << "GET RESPONSE\n";
-		/*not working...why .. ?*/
-		// if (m_infoClientPtr->reqParser.t_result.target == "/")
-		// {
-		// 	int fd = open((cwdPath + "/www/statics/index.html").c_str(), O_RDONLY);
-		// 	char buff[1024] = {0,};
-		// 	read(fd, buff, sizeof(buff));
-		// 	write(m_infoClientPtr->m_socketFd, buff, sizeof(buff));
-		// 	return ;
-		// }
-		bool isFile = m_fileManagerPtr->isValidStaticSrc(&m_infoClientPtr->reqParser.t_result.target);
+	
 		std::cerr << "isFile :" << isFile << "\n";
 		if (isFile == true)
 		{
@@ -30,9 +24,6 @@ Response::openResponse()
 				std::cout << "errorPath failier" << std::endl;
 			else
 			{
-				std::cout << "file size = " << ss.st_size << std::endl;
-				std::cout << "fd = " << fd << std::endl;
-				fcntl(fd, F_SETFL, O_NONBLOCK);
 				m_fileManagerPtr->m_file.fd = fd;
 				m_fileManagerPtr->m_infoFileptr = new InfoFile(); // to be deleted
 				m_fileManagerPtr->m_infoFileptr->m_infoClientPtr = m_infoClientPtr;
@@ -44,6 +35,11 @@ Response::openResponse()
 			std::cerr << "	NO FILE FOUND\n";
 			//404 response
 		}
+	}
+
+	if (m_infoClientPtr->reqParser.t_result.method == POST)
+	{
+
 	}
 }
 

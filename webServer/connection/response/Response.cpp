@@ -7,10 +7,12 @@ Response::openResponse()
 	std::string srcPath = "";
 
 	int isFile = m_fileManagerPtr->isValidStaticSrc(&m_infoClientPtr->reqParser.t_result.target);
-	
+	if (isFile == -1)
+		return ;
+
 	if (m_infoClientPtr->reqParser.t_result.method == GET)
 	{
-		std::cerr << "GET RESPONSE\n";	
+		std::cerr << "GET RESPONSE\n";
 		std::cerr << "isFile :" << isFile << "\n";
 		if (isFile == true)
 		{
@@ -27,6 +29,7 @@ Response::openResponse()
 				m_fileManagerPtr->m_infoFileptr = new InfoFile(); // to be deleted
 				m_fileManagerPtr->m_infoFileptr->m_infoClientPtr = m_infoClientPtr;
 				m_fileManagerPtr->m_infoFileptr->srcPath = srcPath;
+				m_infoClientPtr->status = Res::Making; // added
 			}
 		}
 		if (isFile == 404 || isFile == 500)
@@ -38,7 +41,7 @@ Response::openResponse()
 
 	if (m_infoClientPtr->reqParser.t_result.method == POST)
 	{
-		
+
 	}
 }
 

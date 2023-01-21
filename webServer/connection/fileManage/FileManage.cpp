@@ -3,12 +3,18 @@
 int
 FileManage::isValidStaticSrc(std::string *target)
 {
-	if (*target == "/")
+	if (target == NULL)
+		return (-1);
+	if (*target == "/" || *target == "/home")
 		*target = "index.html";
 	else if (*target == "/submit")
 		*target = "submit.html";
 	else if (*target == "/upload")
 		*target = "upload.html";
+	else if (*target == "/server")
+		*target = "server.html";
+	else if (*target == "/favicon.ico")
+		return (-1);
 
 	std::string staticPath = this->getCwdPath() + "/www/statics";
 	std::cout << "path : " << staticPath << std::endl;
@@ -25,7 +31,7 @@ FileManage::isValidStaticSrc(std::string *target)
 			return (1);
 		}
 	}
-	
+
 	return (404);
 }
 

@@ -230,7 +230,9 @@ Connection::initInfoClient(int clientSocket)
 
 	InfoClient tmpInfo;
 	tmpInfo.m_socketFd = clientSocket;
-	tmpInfo.m_server = &m_serverFdMap[currEvent->ident];
+	tmpInfo.m_server = &(m_serverFdMap[currEvent->ident]);
+//	std::string str = "/";
+//	std::cout <<"roottttttt : "<< tmpInfo.m_server->m_location.find(str)->second.root << std::endl;
 	tmpInfo.m_responserPtr = new Response(); //delete needed
 	tmpInfo.m_responserPtr->m_fileManagerPtr = new FileManage(); // delete needed
 	m_clientFdMap.insert(std::pair<int, InfoClient>(clientSocket, tmpInfo));

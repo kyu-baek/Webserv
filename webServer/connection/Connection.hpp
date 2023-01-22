@@ -31,6 +31,8 @@ class Connection : public Multiplex
 		void handleErrorEvent();
 		void setNonBlock(int fd);
 		void initInfoClient(int clientSocket);
+
+
 };
 
 #endif

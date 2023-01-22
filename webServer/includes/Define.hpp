@@ -52,5 +52,15 @@ namespace Send
 	};
 }
 
+namespace Write
+{
+	enum
+	{
+		Error = -1,
+		None = 0,
+		Making = 1,
+		Complete = 2
+	};
+}
 
 #endif

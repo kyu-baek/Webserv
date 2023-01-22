@@ -48,6 +48,7 @@ class ResponseInfo
 		void setContentLength(unsigned int len) { _contentLength = len; }
 		void setContentEncoding(std::string encod ) { _contentEncoding = encod; }
 		void setBody(std::string resBody) { _resBody = resBody; }
+		void setDate( ) { _date = timeStamp(); }
 		std::string getHttpVersion() {return (_httpVersion);}
 		int getStatusCode() { return (_statusCode); }
 		std::string getStatusMsg() { return (_statusMsg); }

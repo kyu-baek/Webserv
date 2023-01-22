@@ -8,7 +8,7 @@ Response::openResponse()
 	std::string target = p_infoClient->reqParser.t_result.target;
 
 	int isFile = isValidTarget(target);
-	int status = 0;
+	// int status = 0;
 	int fd = -1;
 	std::cout << "	isFile = " << isFile << "\n\n";
 	if (isFile >= 400)
@@ -28,15 +28,48 @@ Response::openResponse()
 		break;
 
 	case POST:
-		this->PostCase(target);
+		if (isCgiIng != true)
+			this->PostCase(target);
 		break;
 
-	case DELETE:
-		this->DeleteCase(target);
-		break;
+	// case DELETE:
+	// 	this->DeleteCase(target);
+	// 	break;
 	}
 	return (fd);
 }
+void
+Response::initResponse()
+{
+	setStatusCode(p_infoClient->reqParser.t_result.status);
+	setStatusMsg(_statusMap[getStatusCode()]);
+	setDate();
+	if (p_infoClient->reqParser.t_result.close == true)
+		setConnection("close");
+	else
+		setConnection("keep-alive");
+	setContentType("text/html");
+	setTransferEncoding("identity");
+	setContentLength(m_file.buffer.size());
+	setBody(m_file.buffer);
+}
+
+void
+Response::startResponse()
+{
+	initResponse();
+	m_resMsg += getHttpVersion() + " " + std::to_string(getStatusCode()) + CRLF;
+	m_resMsg += "Connection : " + getConnection() + CRLF;
+	m_resMsg += "Date : " + getDate() + CRLF;
+	m_resMsg += "Server : " + getServer() + CRLF;
+	m_resMsg += "Content-type : " + getContentType() + CRLF;
+	m_resMsg += "Transfer-Encoding : " + getTransferEncoding() + CRLF;
+	m_resMsg += "Content-Length : " + std::to_string(getContentLength()) + CRLF;
+	m_resMsg += "\n";
+	m_resMsg += getResponseBody();
+	m_file.m_totalBytes = m_resMsg.size();
+}
+
 
 int
 Response::isValidTarget(std::string &target)
@@ -75,8 +108,8 @@ Response::isValidTarget(std::string &target)
 		{
 			(target).insert(0, "/");
 			struct stat ss;
-			std::string srcPath = srcPath + target;
-			if (stat(srcPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true)
+			std::string resPath = srcPath + target;
+			if (stat(resPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true)
 				return (500);
 			return (200);
 		}
@@ -95,23 +128,23 @@ Response::GetCase(std::string &target)
 	std::cout << "srcPath : " << srcPath << std::endl;
 	if ((fd = open(srcPath.c_str(), O_RDONLY)) == -1)
 		return (fd);
+	return (fd);
 }
 
 int
 Response::PostCase(std::string &target)
 {
-	if (isCgiIng == true)
-		return ;
 	std::string cwdPath = this->getCwdPath();
 	std::string execPath = getCwdPath() + "/www/cgi-bin" + target;
 	char const *args[2] = {execPath.c_str(), NULL};
 
 	CGI cgi;
-	cgi.initEnvMap(*p_infoClient);
+	cgi.initEnvMap(p_infoClient);
 	cgi.envMap.insert(std::pair<std::string, std::string>("UPLOAD_PATH", cwdPath + "/uploaded/"));
 	cgi.envMap.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", args[0]));
 
-	char *cgiEnv[cgi.envMap.size() + 1];
+	// char *cgiEnv[cgi.envMap.size() + 1];
+	char **cgiEnv = new char *[sizeof(char *) *cgi.envMap.size() ];
 	cgiEnv[cgi.envMap.size()] = NULL;
 	int i = 0;
 	for (std::map<std::string, std::string>::iterator iter = cgi.envMap.begin(); iter != cgi.envMap.end(); ++iter)
@@ -163,8 +196,94 @@ Response::PostCase(std::string &target)
 	}
 }
 
-int
-Response::DeleteCase(std::string &target)
-{
+// int
+// Response::DeleteCase(std::string &target)
+// {
 
+// }
+
+
+int
+Response::readFile(int fd)
+{
+	char buffer[BUFFER_SIZE + 1];
+
+	memset(buffer, 0, sizeof(buffer));
+	//std::cout << "reading\n";
+	ssize_t size = read(fd, buffer, sizeof(buffer));
+	if (size < 0)
+	{
+		close(fd);
+		//m_infoFileptr->m_fileFdMapPtr->erase(fd);
+		m_file.buffer.clear();
+		return File::Error;
+	}
+	m_file.buffer += std::string(buffer, size);
+	m_file.size += size;
+	if (size < BUFFER_SIZE)
+	{
+		return File::Complete;
+	}
+	return File::Making;
+}
+
+int
+Response::writeClient(int clientSocket)
+{
+	size_t n = send(clientSocket, getWriteResult(), getResMsgSize(), 0);
+	
+	if (n < 0)
+		return Send::Error;
+	else if (changeWritePosition(n) != 0)
+		return Send::Making;
+	else
+		return Send::Complete;
+}
+
+size_t
+Response::getResMsgSize()
+{
+	return (this->m_file.m_totalBytes - this->m_file.m_sentBytes);
+}
+
+const char *
+Response::getWriteResult()
+{
+	return (this->m_resMsg.c_str() + this->m_file.m_sentBytes);
+}
+
+size_t
+Response::changeWritePosition(int n)
+{
+	if (n > 0)
+	{
+		if (m_file.m_sentBytes + n >= m_file.m_totalBytes)
+			m_file.m_sentBytes = m_file.m_totalBytes;
+		else
+			m_file.m_sentBytes += n;
+	}
+	return (getResMsgSize());
+}
+
+int
+Response::writePipe(int fd)
+{
+	size_t size;
+
+	size = write(fd, p_infoClient->reqParser.t_result.body.c_str() + m_file.m_pipe_sentBytes, \
+				p_infoClient->reqParser.t_result.body.length() - m_file.m_pipe_sentBytes);
+	if (size < 0)
+	{
+		close(fd);
+		m_file.m_pipe_sentBytes = 0;
+		return Write::Error;
+	}
+	m_file.m_pipe_sentBytes+= size;
+	if (m_file.m_pipe_sentBytes >= p_infoClient->reqParser.t_result.body.length() )
+	{
+		close(fd);
+		m_file.m_pipe_sentBytes = 0;
+		return Write::Complete;
+	}
+	return Write::Making;
 }

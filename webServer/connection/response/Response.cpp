@@ -139,7 +139,15 @@ Response::PostCase(std::string &target)
 	char const *args[2] = {execPath.c_str(), NULL};
 
 	CGI cgi;
-	cgi.initEnvMap(p_infoClient);
+	cgi.initEnvMap();
+	if (p_infoClient->reqParser.t_result.method == GET)
+		cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "GET"));
+	else if (p_infoClient->reqParser.t_result.method == POST)
+		cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "POST"));
+	else if (p_infoClient->reqParser.t_result.method == DELETE)
+		cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "DELETE"));
+	cgi.envMap.insert(std::pair<std::string, std::string>("QUERY_STRING", p_infoClient->reqParser.t_result.query));
+	cgi.envMap.insert(std::pair<std::string, std::string>("SERVER_PORT", std::to_string(p_infoClient->m_server->m_port)));
 	cgi.envMap.insert(std::pair<std::string, std::string>("UPLOAD_PATH", cwdPath + "/uploaded/"));
 	cgi.envMap.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", args[0]));
 
@@ -231,7 +239,7 @@ int
 Response::writeClient(int clientSocket)
 {
 	size_t n = send(clientSocket, getWriteResult(), getResMsgSize(), 0);
-	
+
 	if (n < 0)
 		return Send::Error;
 	else if (changeWritePosition(n) != 0)

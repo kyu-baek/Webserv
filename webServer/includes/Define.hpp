@@ -17,4 +17,38 @@ enum {
 	DELETE
 };
 
+namespace Client
+{
+	enum
+	{
+		Error = -1,
+		None = 0,
+		Making = 1,
+		Complete = 2
+	};
+}
+
+namespace File
+{
+	enum
+	{
+		Error = -1,
+		None = 0,
+		Making = 1,
+		Complete = 2
+	};
+}
+
+namespace Send
+{
+	enum
+	{
+		Error = -1,
+		None = 0,
+		Making = 1,
+		Complete = 2
+	};
+}
+
+
 #endif

@@ -81,6 +81,14 @@ class ResponseInfo
 			return (ss.str());
 		}
 
+		std::string getCwdPath()
+		{
+			char cwd[1024];
+			getcwd(cwd, 1024);
+			std::string cwdPath(cwd);
+			return (cwdPath);
+		}
+
 	protected:
 		void initStatusMap() {
 			_statusMap.insert(std::pair<int, std::string>(100, "Continue"));

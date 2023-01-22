@@ -72,11 +72,11 @@ Connection::handleReadEvent()
 			buffer[valRead] = '\0';
 			m_clientFdMap[currEvent->ident].reqParser.makeRequest(buffer);
 		}
-		else if (valRead == 0)
+		if (valRead < BUFFER_SIZE)
 		{
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 			{
-				m_clientFdMap[currEvent->ident].m_responser->makeResponse();
+				m_clientFdMap[currEvent->ident].m_responser->openResponse();
 				// if (GET)
 				// {
 				// 	int fileFd = openStaticHtml(target);
@@ -140,4 +140,5 @@ Connection::initInfoClient(int clientSocket)
 	tmpInfo.m_server = &m_serverFdMap[currEvent->ident];
 	tmpInfo.m_responser = new Response(); //delete needed
 	m_clientFdMap.insert(std::pair<int, InfoClient>(clientSocket, tmpInfo));
+	m_clientFdMap[clientSocket].m_responser->p_infoClient = &m_clientFdMap[clientSocket];
 }

@@ -10,10 +10,11 @@ class InfoClient;
 class Response : public ResponseInfo
 {
 	public:
-		InfoClient *infoClient;
+		InfoClient *p_infoClient;
 
 	public:
-		void makeResponse();
+		void openResponse();
+		int  isValidTarget(std::string &target);
 
 };
 

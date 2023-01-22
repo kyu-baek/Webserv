@@ -5,6 +5,8 @@
 #include "../../includes/libraries.hpp"
 #include "../../InfoFd.hpp"
 #include "ResponseInfo.hpp"
+#include "CGI.hpp"
+
 class InfoClient;
 
 class Response : public ResponseInfo
@@ -13,8 +15,17 @@ class Response : public ResponseInfo
 		InfoClient *p_infoClient;
 
 	public:
-		void openResponse();
+		int fds[2];
+		bool isCgiIng;
+
+	public:
+		int openResponse();
 		int  isValidTarget(std::string &target);
+
+	public:
+		int GetCase(std::string &target);
+		int PostCase(std::string &target);
+		int DeleteCase(std::string &target);
 
 };
 

@@ -76,7 +76,25 @@ Connection::handleReadEvent()
 		{
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 			{
-				m_clientFdMap[currEvent->ident].m_responser->openResponse();
+				int fileFd = m_clientFdMap[currEvent->ident].m_responser->openResponse();
+
+				if (m_clientFdMap[currEvent->ident].m_responser->isCgiIng == false)
+				{
+					enrollEventToChangeList(fileFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+					fcntl(fileFd, F_SETFL, O_NONBLOCK);
+					InfoFile tmpInfo;
+					tmpInfo.p_infoClient = &m_clientFdMap[currEvent->ident];
+					m_fileFdMap.insert(std::make_pair(fileFd, tmpInfo));
+				}
+				else
+				{
+					enrollEventToChangeList(fileFd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+					fcntl(fileFd, F_SETFL, O_NONBLOCK);
+					InfoFile tmpInfo;
+					tmpInfo.p_infoClient = &m_clientFdMap[currEvent->ident];
+					m_fileFdMap.insert(std::make_pair(fileFd, tmpInfo));
+				}
+				enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 				// if (GET)
 				// {
 				// 	int fileFd = openStaticHtml(target);
@@ -102,19 +120,31 @@ Connection::handleReadEvent()
 	}
 
 	/* File Event Case */
-	// if (m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end())
-	// {
-	// 	// int res = readFile(filename);
-	// 	std::string bodyContents += readBuffer();
-	// 	std::string header = makeHeader();
-	// 	std::string fullRes = header + bodyContents;
-	// }
+	if (m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end())
+	{
+		int res = readFile(filename);
+		std::string bodyContents += readBuffer();
+		std::string header = makeHeader();
+		std::string fullRes = header + bodyContents;
+	}
 }
 
 void
 Connection::handleWriteEvent()
 {
+	if (m_clientFdMap.find(currEvent->ident) != m_clientFdMap.end())
+	{
 
+	}
+
+	if (m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end())
+	{
+
+	}
+
+		// write(fds[1], buff, sizeof(buff));
+		// // std::cerr << "		test\n" << buff << "\n\n";
+		// close(fds[1]);
 }
 
 void
@@ -141,4 +171,5 @@ Connection::initInfoClient(int clientSocket)
 	tmpInfo.m_responser = new Response(); //delete needed
 	m_clientFdMap.insert(std::pair<int, InfoClient>(clientSocket, tmpInfo));
 	m_clientFdMap[clientSocket].m_responser->p_infoClient = &m_clientFdMap[clientSocket];
+	m_clientFdMap[clientSocket].m_responser->isCgiIng = false;
 }

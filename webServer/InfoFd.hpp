@@ -52,7 +52,7 @@ class InfoServer
 class InfoFile
 {
 	public:
-		InfoClient *m_client;
+		InfoClient *p_infoClient;
 };
 
 

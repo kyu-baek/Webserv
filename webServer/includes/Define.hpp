@@ -11,6 +11,8 @@
 
 #define TIMER 60
 
+#define CHILD 0
+
 enum {
 	GET,
 	POST,

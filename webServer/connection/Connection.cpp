@@ -76,6 +76,9 @@ Connection::handleReadEvent()
 		{
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 			{
+				std::cout << "\n-----------------\n";
+				m_clientFdMap[currEvent->ident].reqParser.printRequest();
+				std::cout << "-----------------\n\n";
 				int fileFd = m_clientFdMap[currEvent->ident].m_responser->openResponse();
 
 				if (m_clientFdMap[currEvent->ident].m_responser->isCgiIng == false)
@@ -146,7 +149,7 @@ Connection::handleReadEvent()
 			else
 			{
 				// std::cout << "cgi!!!!!!\n";
-				//m_fileFdMap[currEvent->ident].p_infoClient->m_responser->m_file.size = 
+				//m_fileFdMap[currEvent->ident].p_infoClient->m_responser->m_file.size =
 				enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 			}
 			//_eventManager.enrollEventToChangeList(_responserMap[_fdMap[currEvent->ident]].fds[1], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
@@ -164,7 +167,7 @@ Connection::handleWriteEvent()
 	{
 		std::cout << " CLIENT FD write\n";
 		int res =  m_clientFdMap[currEvent->ident].m_responser->writeClient(currEvent->ident);
-		
+
 		switch (res)
 		{
 		case Send::Error:
@@ -188,7 +191,7 @@ Connection::handleWriteEvent()
 	{
 		std::cout << " FILE FD write\n";
 		int res =  m_clientFdMap[currEvent->ident].m_responser->writePipe(currEvent->ident);
-		
+
 		switch (res)
 		{
 		case Write::Error:

@@ -24,9 +24,9 @@ Response::openResponse()
 	case GET:
 		fd = this->GetCase(target);
 		if (fd == -1)
+			std::cout << "fd == -1\n";
 			// fd = open("500error.html", O_RDONLY);
 		break;
-
 	case POST:
 		if (isCgiIng != true)
 			this->PostCase(target);
@@ -121,6 +121,7 @@ Response::isValidTarget(std::string &target)
 int
 Response::GetCase(std::string &target)
 {
+	std::cout << "getCase\n";
 	std::string srcPath = getCwdPath() + "/www/statics" + target;
 	// p_infoClient->status = Res::Making;
 	int fd = -1;
@@ -134,6 +135,7 @@ Response::GetCase(std::string &target)
 int
 Response::PostCase(std::string &target)
 {
+	std::cout << "PostCase\n";
 	std::string cwdPath = this->getCwdPath();
 	std::string execPath = getCwdPath() + "/www/cgi-bin" + target;
 	char const *args[2] = {execPath.c_str(), NULL};
@@ -294,4 +296,20 @@ Response::writePipe(int fd)
 		return Write::Complete;
 	}
 	return Write::Making;
+}
+
+void
+Response::clearFileEvent()
+{
+	m_file.fd = -1;
+	m_file.size = 0;
+	m_file.buffer.clear();
+	m_file.m_totalBytes = 0;
+	m_file.m_sentBytes = 0;
+	m_file.m_pipe_sentBytes = 0;
+
+	fds[0] = 1;
+	fds[1] = -1;
+	isCgiIng = false;
+	m_resMsg.clear();
 }

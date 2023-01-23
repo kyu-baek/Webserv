@@ -55,7 +55,7 @@ class Response : public ResponseInfo
 	
 	/* clear */
 	public:
-		// void clearFileEvent();
+		void clearFileEvent();
 
 };
 

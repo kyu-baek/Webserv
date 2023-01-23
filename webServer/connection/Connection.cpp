@@ -80,7 +80,7 @@ Connection::handleReadEvent()
 				m_clientFdMap[currEvent->ident].reqParser.printRequest();
 				std::cout << "-----------------\n\n";
 				int fileFd = m_clientFdMap[currEvent->ident].m_responser->openResponse();
-
+				std::cout << "isCgi : " << m_clientFdMap[currEvent->ident].m_responser->isCgiIng << std::endl;
 				if (m_clientFdMap[currEvent->ident].m_responser->isCgiIng == false)
 				{
 					enrollEventToChangeList(fileFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
@@ -125,6 +125,7 @@ Connection::handleReadEvent()
 
 	if (m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end())
 	{
+		std::cout << "File Read Event : " << currEvent->ident << std::endl;
 		int res =  m_fileFdMap[currEvent->ident].p_infoClient->m_responser->readFile(currEvent->ident);
 
 		switch (res)
@@ -181,6 +182,7 @@ Connection::handleWriteEvent()
 		case Send::Complete:
 			enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 			enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+			m_clientFdMap[currEvent->ident].m_responser->clearFileEvent();
 			// m_clientFdMap[currEvent->ident].m_responser->clearFileEvent();
 			//m_clientFdMap[currEvent->ident].clear();
 			break;

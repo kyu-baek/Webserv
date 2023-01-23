@@ -16,7 +16,7 @@ Connection::eventLoop()
 				handleReadEvent();
 			else if (currEvent->filter == EVFILT_WRITE)
 				handleWriteEvent();
-			else if (currEvent->flags & EV_ERROR)
+			else if (currEvent->flags & EV_ERROR || currEvent->flags & EV_EOF)
 				handleErrorEvent();
 		}
 	}
@@ -25,7 +25,33 @@ Connection::eventLoop()
 void
 Connection::handleTimeOut()
 {
+	std::cout << "\n\n EVFILT_TIMER : " << currEvent->ident << "\n";
+	if (m_clientFdMap.find(currEvent->ident) != m_clientFdMap.end())
+	{
+		clearTimeoutedAccess(currEvent->ident);
+	}
+	std::cout << "\n\n TIMER EVENT DONE-------------------------------------\n";
+}
 
+void
+Connection::clearTimeoutedAccess(int socket)
+{
+	std::cout << "clearTimeoutedAccess" << std::endl;
+	if (m_clientFdMap.find(socket) == m_clientFdMap.end())
+		return ;
+	std::map <int, InfoFile>::iterator it;
+	for (it = m_fileFdMap .begin(); it != m_fileFdMap.end(); it++)
+	{
+		if (it->second.p_infoClient->m_socketFd == (uintptr_t)socket)
+		{
+			m_fileFdMap.erase(it->first);
+			continue;
+		}
+	}
+	//Delete for malloc or connect map!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!; 
+	m_clientFdMap.erase(socket);
+	enrollEventToChangeList(socket, EVFILT_TIMER, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+	close(socket);
 }
 
 void
@@ -50,8 +76,8 @@ Connection::handleReadEvent()
 	{
 		char buffer[BUFFER_SIZE + 1] = {0,};
 
-		ssize_t valRead = read(currEvent->ident, buffer, BUFFER_SIZE);
-		if (valRead == FAIL)
+		ssize_t valRead = recv(currEvent->ident, buffer, BUFFER_SIZE, 0);
+		if (valRead == FAIL || valRead == 0)
 		{
 			std::cerr << "	ERROR : read() in Client Event Case\n";
 			std::vector<int>::iterator it;
@@ -67,7 +93,7 @@ Connection::handleReadEvent()
 			close(currEvent->ident);
 			m_clientFdMap.erase(currEvent->ident);
 		}
-		else if (valRead > 0)
+		else
 		{
 			buffer[valRead] = '\0';
 			m_clientFdMap[currEvent->ident].reqParser.makeRequest(buffer);
@@ -213,7 +239,18 @@ Connection::handleWriteEvent()
 void
 Connection::handleErrorEvent()
 {
-
+	if (m_serverFdMap.find(currEvent->ident) != m_serverFdMap.end())
+	{
+		this->m_serverFdMap.erase(this->m_serverFdMap.find(currEvent->ident));
+		close(currEvent->ident);
+	}
+	else if (this->m_clientFdMap.find(currEvent->ident) != this->m_clientFdMap.end())
+	{
+		this->m_clientFdMap.erase(this->m_clientFdMap.find(currEvent->ident));
+		close(currEvent->ident);
+	}
+	this->m_fileFdMap.erase(this->m_fileFdMap.find(currEvent->ident));
+	close(currEvent->ident);
 }
 
 void

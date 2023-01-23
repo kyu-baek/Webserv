@@ -32,6 +32,9 @@ class Connection : public Multiplex
 		void setNonBlock(int fd);
 		void initInfoClient(int clientSocket);
 
+	public:
+		void clearTimeoutedAccess(int socket);
+
 
 };
 

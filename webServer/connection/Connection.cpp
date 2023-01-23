@@ -71,9 +71,6 @@ Connection::handleReadEvent()
 		{
 			buffer[valRead] = '\0';
 			m_clientFdMap[currEvent->ident].reqParser.makeRequest(buffer);
-		}
-		if (valRead < BUFFER_SIZE)
-		{
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 			{
 				std::cout << "\n-----------------\n";
@@ -113,11 +110,9 @@ Connection::handleReadEvent()
 				// {
 
 				// }
-
 			}
 			if (m_clientFdMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseError)
 			{
-
 			}
 		}
 	}
@@ -183,6 +178,9 @@ Connection::handleWriteEvent()
 			enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 			enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 			m_clientFdMap[currEvent->ident].m_responser->clearFileEvent();
+			// close(currEvent->ident);
+			// m_clientFdMap.erase(currEvent->ident);
+
 			// m_clientFdMap[currEvent->ident].m_responser->clearFileEvent();
 			//m_clientFdMap[currEvent->ident].clear();
 			break;

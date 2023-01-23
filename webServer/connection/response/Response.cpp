@@ -308,7 +308,7 @@ Response::clearFileEvent()
 	m_file.m_sentBytes = 0;
 	m_file.m_pipe_sentBytes = 0;
 
-	fds[0] = 1;
+	fds[0] = -1;
 	fds[1] = -1;
 	isCgiIng = false;
 	m_resMsg.clear();

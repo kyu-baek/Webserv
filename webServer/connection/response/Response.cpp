@@ -70,48 +70,57 @@ Response::startResponse()
 	m_file.m_totalBytes = m_resMsg.size();
 }
 
-
+/*
+	check 사항
+	1. 읽기 권한이 있는지
+	2. 현재경로에서 실행가능 한한지지
+	3. client max body size 확인
+*/
 int
 Response::isValidTarget(std::string &target)
 {
-	std::string srcPath;
-	if (target == "/" || target == "/home")
-		target = "index.html";
-	else if (target == "/submit")
-		target = "submit.html";
-	else if (target == "/upload")
-		target = "upload.html";
-	else if (target == "/server")
-		target = "server.html";
-	else if (target == "/post.py")
-		target = "post.py";
-	else if (target == "/upload.py")
-		target = "delete.py";
-	else if (target == "/submit.py")
-		target = "submit.py";
-
-	if (p_infoClient->reqParser.t_result.method == GET)
-		srcPath = this->getCwdPath() + "/www/statics";
-	if (p_infoClient->reqParser.t_result.method == POST)
-		srcPath = this->getCwdPath() + "/www/cgi-bin";
-
-	std::cout << "path : " << srcPath << std::endl;
-	DIR *dir = opendir(srcPath.c_str());
-	struct dirent *dirent = NULL;
-	// 405 etc to be added.
-	while (true)
+	std::map<std::string, Location >::iterator it = p_infoClient->m_server->m_location.find(target);
+	if (it != p_infoClient->m_server->m_location.end())
 	{
-		dirent = readdir(dir);
-		if (!dirent)
-			break;
-		if (strcmp(dirent->d_name, (target).c_str()) == SUCCESS)
+		std::string staticPath;
+		if (it->second.root != "")
+			staticPath = this->getCwdPath() + "/" + it->second.root;
+		else
+			staticPath = this->getCwdPath()  + "/";
+		
+		if (it->second.index[0] != "")
+			target = it->second.index[0];
+		std::cout << "target : " << target << std::endl;
+		DIR *dir;
+		if ((dir = opendir(staticPath.c_str())) == NULL)
 		{
-			(target).insert(0, "/");
-			struct stat ss;
-			std::string resPath = srcPath + target;
-			if (stat(resPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true)
-				return (500);
-			return (200);
+			if (errno == ENOTDIR)
+				return 0;
+			else if (errno == EACCES)
+				return 403;
+			else if (errno == ENOENT)
+				return 404;
+			else if (errno == EMFILE)
+				return 503;
+			else
+				return 500;
+		}
+		struct dirent *dirent = NULL;
+		while (true)
+		{
+			dirent = readdir(dir);
+			if (!dirent)
+				break;
+			if (strcmp(dirent->d_name, (target).c_str()) == SUCCESS)
+			{
+				(target).insert(0, "/");
+				struct stat ss;
+				std::string resPath = staticPath + target;
+				if (stat(resPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true)
+					return (500);
+				std::cout << "resPath : " << resPath << std::endl;
+				return (200);
+			}
 		}
 	}
 	return (404);
@@ -127,7 +136,7 @@ Response::GetCase(std::string &target)
 	int fd = -1;
 
 	std::cout << "srcPath : " << srcPath << std::endl;
-	if ((fd = open(srcPath.c_str(), O_RDONLY)) == -1)
+	if ((fd = open(srcPath.c_str(), O_RDONLY, 0644)) == -1)
 		return (fd);
 	return (fd);
 }
@@ -174,8 +183,12 @@ Response::PostCase(std::string &target)
 		// strcpy(buff, partStr.c_str());
 
 		close(fds[0]);
-		waitpid(pid, NULL, WNOHANG);
-		p_infoClient->m_responser->isCgiIng = true;
+		 waitpid(pid, &status, WNOHANG);
+		// if (res == pid && WEXITSTATUS(status) != 0)
+		// {
+		// 	status = 
+		// }
+		p_infoClient->m_responser->isCgiIng = CGIFL::Making;
 		return (fds[1]);
 
 
@@ -310,6 +323,6 @@ Response::clearFileEvent()
 
 	fds[0] = -1;
 	fds[1] = -1;
-	isCgiIng = false;
+	isCgiIng = CGIFL::None;
 	m_resMsg.clear();
 }

@@ -28,10 +28,11 @@ class Response : public ResponseInfo
 	public:
 		InfoClient *p_infoClient;
 		FileEvent m_file;
+		int status;
 
 	public:
 		int fds[2];
-		bool isCgiIng;
+		int isCgiIng;
 		std::string m_resMsg;
 
 	public:

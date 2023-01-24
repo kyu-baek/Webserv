@@ -9,6 +9,7 @@
 
 #define NONE -1
 
+
 #define TIMER 60
 
 #define CHILD 0
@@ -19,6 +20,16 @@ enum {
 	DELETE
 };
 
+namespace CGIFL
+{
+	enum
+	{
+		Error = -1,
+		None = 0,
+		Making = 1,
+		Complete = 2
+	};
+}
 namespace Client
 {
 	enum

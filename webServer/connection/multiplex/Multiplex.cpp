@@ -25,8 +25,10 @@ int
 Multiplex::senseEvents()
 {
 	int sensedEvents;
-
-	sensedEvents = kevent(m_kq, &m_changeList[0], m_changeList.size(), m_eventList, MAX_NUM_EVENTS, NULL); // SENSE NEW_EVENTS(연결 감지)
+	struct timespec timeout;
+	timeout.tv_sec = 7;
+	timeout.tv_nsec = 0;
+	sensedEvents = kevent(m_kq, &m_changeList[0], m_changeList.size(), m_eventList, MAX_NUM_EVENTS, &timeout); // SENSE NEW_EVENTS(연결 감지)
 	if (sensedEvents == -1)
 	{
 		std::cerr << "kevent() error :";

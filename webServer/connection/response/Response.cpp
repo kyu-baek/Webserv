@@ -11,7 +11,7 @@ Response::openResponse()
 	if (isFile >= 400)
 	{
 		//send Error msg;
-		std::cerr << "	ERROR : INVALID TARGET\n";
+		std::cerr <<m_infoClientPtr->m_socketFd << "	ERROR : INVALID TARGET : " << m_infoClientPtr->reqParser.t_result.target << std::endl;
 		return;
 	}
 

@@ -152,15 +152,18 @@ FileManage::readFile(int fd)
 	//std::cout << size << std::endl;
 	if (size < 0)
 	{
+		std::cout << "size < 0" << std::endl;
 		close(fd);
 		m_infoFileptr->m_fileFdMapPtr->erase(fd);
 		m_file.buffer.clear();
 		return File::Error;
 	}
+	//vector<char> 로 바꾸고 미리 파일 크기 만큼   해서 용량을 미리 확보한다. 
 	m_file.buffer += std::string(buffer, size);
 	m_file.size += size;
 	if (size < BUFFER_SIZE)
 	{
+		std::cout << "size < BUFFER_SIZE" << std::endl;
 		// close(fd);
 		// _fdMap.erase(fd);
 		return File::Complete;

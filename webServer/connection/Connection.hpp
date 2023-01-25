@@ -25,6 +25,7 @@ class Connection : public Multiplex
 		}
 	public:
 		void eventLoop();
+		void handleEofEvent();
 		void handleTimeOut();
 		void handleReadEvent();
 		void handleWriteEvent();

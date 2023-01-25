@@ -11,16 +11,24 @@ Connection::eventLoop()
 		for (int i = 0; i < eventNum; i++)
 		{
 			currEvent = &getEventList()[i];
+			if (currEvent->flags & EV_EOF)
+				handleEofEvent();
+			else if (currEvent->flags & EV_ERROR)
+				handleErrorEvent();
 			if (currEvent->filter == EVFILT_TIMER)
 				handleTimeOut();
 			else if (currEvent->filter == EVFILT_READ)
 				handleReadEvent();
 			else if (currEvent->filter == EVFILT_WRITE)
 				handleWriteEvent();
-			else if (currEvent->flags & EV_ERROR || currEvent->flags & EV_EOF)
-				handleErrorEvent();
 		}
 	}
+}
+
+void
+Connection::handleEofEvent()
+{
+	std::cout << "	HandleEofEvent : " << currEvent->ident << std::endl;
 }
 
 void
@@ -50,10 +58,15 @@ Connection::deleteClient(int socket)
 		}
 	}
 	int server = m_clientFdMap.find(socket)->second.m_server->m_serverSocket;
-	for (std::vector<int>::iterator it = m_serverFdMap.find(server)->second.m_clients.begin(); it != m_serverFdMap.find(server)->second.m_clients.end(); it++)
+	std::vector<int>::iterator it2;
+	for (it2 = m_serverFdMap.find(server)->second.m_clients.begin(); it2 != m_serverFdMap.find(server)->second.m_clients.end(); it2++)
 	{
-		if (*it == socket)
-			m_serverFdMap.find(server)->second.m_clients.erase(it);
+		if (*it2 == socket)
+		{
+
+			m_serverFdMap.find(server)->second.m_clients.erase(it2);
+			break;
+		}
 	}
 	delete m_clientFdMap.find(socket)->second.m_responserPtr->m_fileManagerPtr;
 	delete m_clientFdMap.find(socket)->second.m_responserPtr;
@@ -85,10 +98,10 @@ Connection::handleReadEvent()
 	if (m_clientFdMap.find(currEvent->ident) != m_clientFdMap.end())
 	{
 		std::cout << "CLIENT READ : " << currEvent->ident << std::endl;
+		system("netstat -an | grep 8080");
 		char buffer[BUFFER_SIZE + 1] = {0, };
-
 		ssize_t valRead = read(currEvent->ident, buffer, BUFFER_SIZE);
-
+		std::cout << "valRead :" << valRead << std::endl;
 		if (valRead == FAIL)
 		{
 			std::cerr << currEvent->ident<<"	ERROR : read() in Client Event Case\n";
@@ -108,6 +121,8 @@ Connection::handleReadEvent()
 		}
 		else if (valRead > 0)
 		{
+			// std::cout << "11111\n\n";
+			// system("netstat -an | grep 8080");
 			buffer[valRead] = '\0';
 			m_clientFdMap[currEvent->ident].reqParser.makeRequest(buffer);
 			m_clientFdMap[currEvent->ident].status = Res::None;
@@ -121,7 +136,11 @@ Connection::handleReadEvent()
 					m_clientFdMap[currEvent->ident].m_responserPtr->openResponse();
 					if (m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_file.fd != -1)
 					{
+						std::cout << "222\n\n";
+						system("netstat -an | grep 8080");
 						enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+						std::cout << "333\n\n";
+						system("netstat -an | grep 8080");
 						if (m_clientFdMap[currEvent->ident].isCgi == false)
 						{
 							
@@ -165,6 +184,8 @@ Connection::handleReadEvent()
 	/* File Event Case */
 	if (m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end())
 	{
+		std::cout << "444\n\n";
+		system("netstat -an | grep 8080");
 		std::cout << "FILE READ : " << currEvent->ident << std::endl;
 		if (m_fileFdMap[currEvent->ident].m_infoClientPtr->status == Res::Making)
 		{
@@ -195,6 +216,8 @@ Connection::handleReadEvent()
 					// std::cout << currEvent->ident << " file reading done. open client " << _fdMap[currEvent->ident] << std::endl;;
 					close(currEvent->ident);
 					m_fileFdMap.erase(m_fileFdMap.find(currEvent->ident)->first);
+					std::cout << "555\n\n";
+					system("netstat -an | grep 8080");
 				}
 				else
 				{
@@ -219,6 +242,8 @@ Connection::handleWriteEvent()
 		
 		if (m_clientFdMap.find(currEvent->ident) != m_clientFdMap.end())
 		{
+			std::cout << "666\n\n";
+			system("netstat -an | grep 8080");
 			std::cout << "CLIENT WRITE : " << currEvent->ident << std::endl;
 			int result;
 			if (m_clientFdMap[currEvent->ident].isCgi == false)
@@ -246,8 +271,7 @@ Connection::handleWriteEvent()
 				break;
 			case Send::Complete:
 					std::cout << "	--RESPONSE SENT TO CLIENT " << currEvent->ident << "--\n\n";
-
-					
+			
 					enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 					m_clientFdMap[currEvent->ident].m_responserPtr->clearResInfo();
 					m_clientFdMap[currEvent->ident].m_responserPtr->clearResponseByte();
@@ -266,6 +290,9 @@ Connection::handleWriteEvent()
 					// // m_clientFdMap[currEvent->ident].m_server->m_clients.erase();
 					// m_clientFdMap.erase(currEvent->ident); //temporarily added
 					enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+					std::cout<< "\n\nresponse msg : \n" << m_clientFdMap[currEvent->ident].m_responserPtr->m_resMsg << std::endl;
+
+
 				break;
 			}
 
@@ -297,19 +324,35 @@ Connection::handleWriteEvent()
 void
 Connection::handleErrorEvent()
 {
-	std::cout << "handleErrorEvent\n";
+	// if (m_serverFdMap.empty() == true)
+	// 	return ;
+	
+	// if (m_fileFdMap.empty() == true)
+	// 	return ;
+	std::cout << "handleErrorEvent : " << currEvent->ident << std::endl;
 	if (m_serverFdMap.find(currEvent->ident) != m_serverFdMap.end())
 	{
+		std::cout << "1111111\n";
+		if (m_clientFdMap.empty() == true)
+			return ;
 		this->m_serverFdMap.erase(this->m_serverFdMap.find(currEvent->ident));
 		close(currEvent->ident);
 	}
 	else if (this->m_clientFdMap.find(currEvent->ident) != this->m_clientFdMap.end())
 	{
+		std::cout << "2222\n";
 		this->m_clientFdMap.erase(this->m_clientFdMap.find(currEvent->ident));
 		close(currEvent->ident);
+		//map 도 지우기
 	}
-	this->m_fileFdMap.erase(this->m_fileFdMap.find(currEvent->ident));
-	close(currEvent->ident);
+	if (this->m_fileFdMap.find(currEvent->ident) != this->m_fileFdMap.end())
+	{
+		std::cout << "3333\n";
+		this->m_fileFdMap.erase(this->m_fileFdMap.find(currEvent->ident));
+		close(currEvent->ident);
+	}
+	// this->m_fileFdMap.erase(this->m_fileFdMap.find(currEvent->ident));
+	// close(currEvent->ident);
 }
 
 void

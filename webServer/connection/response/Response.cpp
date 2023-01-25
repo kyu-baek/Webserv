@@ -111,7 +111,7 @@ Response::initResponse()
 	setStatusCode(m_infoClientPtr->reqParser.t_result.status);
 	setStatusMsg(_statusMap[getStatusCode()]);
 	setDate();
-	if (m_infoClientPtr->reqParser.t_result.close == true)
+	if (m_infoClientPtr->reqParser.t_result.close == false)
 		setConnection("close");
 	else
 		setConnection("keep-alive");

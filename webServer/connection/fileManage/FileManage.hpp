@@ -31,7 +31,7 @@ class FileManage
 		int isValidTarget(std::string &targetPath);
 		int	readFile(int fd);
 		void clearFileEvent();
-		bool isCgiOutDone();
+		// bool isCgiOutDone();
 
 	public:	
 		int writePipe(int fd);

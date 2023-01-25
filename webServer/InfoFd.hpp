@@ -68,8 +68,10 @@ class InfoFile
 		FileManage *m_fileManagerPtr;
 		std::string srcPath;
 		std::map<int, InfoFile> *m_fileFdMapPtr;
-		int fds[2];
+		int inFds[2];
+		int outFds[2];
 		bool isCgi;
+		int isFile;
 };
 
 

@@ -1,32 +1,27 @@
-#!/usr/bin/python3
-import sys, urllib.parse
+#!/usr/bin/python
 
-# Read the form data from the stdin stream
-post_data = sys.stdin.read()
-print(post_data)
-# convert to string and strip the trailing null characters
-post_data = post_data.rstrip("\x00")
+# Import modules for CGI handling 
+import cgi, cgitb 
 
-# parse the form data
-form_data = urllib.parse.parse_qs(post_data)
+# Create instance of FieldStorage 
+form = cgi.FieldStorage() 
 
-print("<html>")
-print("<body>")
-print("<div><a href=\"/home\">Go to index</a></div>")
-# Print the contents of the POST request
-print("<div>POST Data:</div>")
-print("<div>")
-if "first_name" in form_data:
-	first_name = form_data["first_name"][0]
-	print("first name : %s" % (first_name ))
-print("</div>")
-print("<div>")
-if "last_name" in form_data:
-    last_name = form_data["last_name"][0]
-    print("last name : %s" % (last_name))
-print("</div>")
-if "first_name" not in form_data and "last_name" not in form_data:
-	print("name not found")
+# Get data from fields
+intra_id = form.getvalue('first_name')
+coalition = form.getvalue('last_name')
 
-print("</body>")
-print("</html>")
+# Make response data
+
+print ("Content-type:text/html\r\n\r\n")
+print ("<html>")
+print ("<head>")
+print ("<title>Test Form (POST) Result</title>")
+print ("<style>")
+print ("body {font-family: 'Fredoka One';}")
+print ("</style>")
+print ("</head>")
+print ("<body>")
+print ("<h2>Test Form (POST) ✨ Result ✨</h2>")
+print ("<h3>%s's coalition is %s</h3>" %(intra_id, coalition))
+print ("</body>")
+print ("</html>")

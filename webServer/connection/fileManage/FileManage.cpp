@@ -49,6 +49,8 @@
 int
 FileManage::isValidTarget(std::string &target)
 {
+
+
 	if (target == "")
 		return 404;
 	if (target == "/" || target == "/home")
@@ -67,11 +69,13 @@ FileManage::isValidTarget(std::string &target)
         target = "submit.py";
 
 	std::string srcPath;
-    srcPath = this->getCwdPath() + "/www/statics";
-    if (m_infoFileptr != NULL && m_infoFileptr->m_infoClientPtr->reqParser.t_result.method == POST)
+
+	srcPath = this->getCwdPath() + "/www/statics";
+    
+    if (target == "submit.py")
         srcPath = this->getCwdPath() + "/www/cgi-bin";
 	
-	// std::cout << "path : " << staticPath << std::endl;
+	std::cout << "SROUCE PATH : " << srcPath << std::endl;
 	DIR *dir = opendir(srcPath.c_str());
 	struct dirent *dirent = NULL;
 	while (true)
@@ -82,7 +86,7 @@ FileManage::isValidTarget(std::string &target)
 		if (strcmp(dirent->d_name, (target).c_str()) == SUCCESS)
 		{
 			(target).insert(0, "/");
-			return (1);
+			return (200);
 		}
 	}
 
@@ -188,43 +192,40 @@ FileManage::writePipe(int fd)
                 m_infoFileptr->m_infoClientPtr->reqParser.t_result.body.length() - m_file.m_pipe_sentBytes);
     if (size < 0)
     {
-        close(fd);
-        m_file.m_pipe_sentBytes = 0;
         return Write::Error;
     }
     m_file.m_pipe_sentBytes+= size;
     if (m_file.m_pipe_sentBytes >= m_infoFileptr->m_infoClientPtr->reqParser.t_result.body.length() )
     {
-        close(fd);
-        m_file.m_pipe_sentBytes = 0;
+		std::cout << "PIPE WRITE COMPLETE\n";
         return Write::Complete;
     }
     return Write::Making;
 }
 
-bool
-FileManage::isCgiOutDone()
-{
-	std::string target = m_infoFileptr->m_infoClientPtr->m_responserPtr->cgiOutTarget;
-	std::string srcPath = this->getCwdPath() + "/www/cgi-bin";
-	DIR *dir = opendir(srcPath.c_str());
-    struct dirent *dirent = NULL;
-    // 405 etc to be added.
-    while (true)
-    {
-        dirent = readdir(dir);
-        if (!dirent)
-            break;
-        if (strcmp(dirent->d_name, (target).c_str()) == SUCCESS)
-        {
-            (target).insert(0, "/");
-            struct stat ss;
-            std::string resPath = srcPath + target;
-            if (stat(resPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true)
-                return (false);
-            return (true);
-        }
-    }
-	return (false);
-}
+// bool
+// FileManage::isCgiOutDone()
+// {
+// 	std::string target = m_infoFileptr->m_infoClientPtr->m_responserPtr->cgiOutTarget;
+// 	std::string srcPath = this->getCwdPath() + "/www/cgi-bin";
+// 	DIR *dir = opendir(srcPath.c_str());
+//     struct dirent *dirent = NULL;
+//     // 405 etc to be added.
+//     while (true)
+//     {
+//         dirent = readdir(dir);
+//         if (!dirent)
+//             break;
+//         if (strcmp(dirent->d_name, (target).c_str()) == SUCCESS)
+//         {
+//             (target).insert(0, "/");
+//             struct stat ss;
+//             std::string resPath = srcPath + target;
+//             if (stat(resPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true)
+//                 return (false);
+//             return (true);
+//         }
+//     }
+// 	return (false);
+// }
 

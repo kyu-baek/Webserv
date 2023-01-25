@@ -56,6 +56,40 @@ Response::openResponse()
 		// if (pipe(m_fileManagerPtr->m_infoFileptr->inFds) < 0 || pipe(m_fileManagerPtr->m_infoFileptr->outFds) < 0)
 		// 	std::cerr <<"ERROR: pipe\n";
 
+	// 	 char* argv2[3] = {
+	// 		(char*)execPath.c_str(),
+	// 		(char*)NULL,
+	// 		0
+	// };
+	std::string str("/usr/bin/python3");
+	char* argv2[3] = {
+			(char*)str.c_str(),
+			(char*)execPath.c_str(),
+			0
+	};
+		std::cerr << "execPath : " << execPath << std::endl;
+		char const *args[3] = {execPath.c_str(), NULL, 0};
+
+		m_fileManagerPtr->m_cgi.initEnvMap();
+		if (m_infoClientPtr->reqParser.t_result.method == GET)
+			m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "GET"));
+		else if (m_infoClientPtr->reqParser.t_result.method == POST)
+			m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "POST"));
+		else if (m_infoClientPtr->reqParser.t_result.method == DELETE)
+			m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "DELETE"));
+		m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("QUERY_STRING", m_infoClientPtr->reqParser.t_result.query));
+		m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("SERVER_PORT", std::to_string(m_infoClientPtr->m_server->m_port)));
+		m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("UPLOAD_PATH", cwdPath + "/db/"));
+		m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", args[0]));
+
+		char **envs = new char *[sizeof(char *) * m_fileManagerPtr->m_cgi.envMap.size()];
+		int i = 0;
+		for (std::map<std::string, std::string>::iterator it = m_fileManagerPtr->m_cgi.envMap.begin();
+			 it != m_fileManagerPtr->m_cgi.envMap.end(); ++it)
+		{
+			envs[i] = strdup((it->first + "=" + it->second).c_str());
+			++i;
+		}
 
 		if (pipe(m_fileManagerPtr->m_infoFileptr->inFds) == -1)
 			std::cerr <<"ERROR: pipe\n";
@@ -104,29 +138,8 @@ Response::openResponse()
 		}
 		else if (pid == 0)
 		{
-			std::cout << "	This is Child of POST : \n";
-			char const *args[2] = {execPath.c_str(), NULL};
-
-			m_fileManagerPtr->m_cgi.initEnvMap();
-			if (m_infoClientPtr->reqParser.t_result.method == GET)
-				m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "GET"));
-			else if (m_infoClientPtr->reqParser.t_result.method == POST)
-				m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "POST"));
-			else if (m_infoClientPtr->reqParser.t_result.method == DELETE)
-				m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "DELETE"));
-			m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("QUERY_STRING", m_infoClientPtr->reqParser.t_result.query));
-			m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("SERVER_PORT", std::to_string(m_infoClientPtr->m_server->m_port)));
-			m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("UPLOAD_PATH", cwdPath + "/db/"));
-			m_fileManagerPtr->m_cgi.envMap.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", args[0]));
-
-			char **envs = new char *[sizeof(char *) * m_fileManagerPtr->m_cgi.envMap.size()];
-			int i = 0;
-			for (std::map<std::string, std::string>::iterator it = m_fileManagerPtr->m_cgi.envMap.begin();
-				 it != m_fileManagerPtr->m_cgi.envMap.end(); ++it)
-			{
-				envs[i] = strdup((it->first + "=" + it->second).c_str());
-				++i;
-			}
+			//std::cout << "	This is Child of POST : \n";
+		
 
 			close(m_fileManagerPtr->m_infoFileptr->inFds[1]);
 			dup2(m_fileManagerPtr->m_infoFileptr->inFds[0], STDIN_FILENO);
@@ -135,11 +148,14 @@ Response::openResponse()
 			close(m_fileManagerPtr->m_infoFileptr->outFds[0]);
 			dup2(m_fileManagerPtr->m_infoFileptr->outFds[1], STDOUT_FILENO);
 			close(m_fileManagerPtr->m_infoFileptr->outFds[1]);
-			std::cout << "after dub2 \n";
-			std::cout << "inFds[0] : " << m_fileManagerPtr->m_infoFileptr->inFds[0] << "inFds[1] : " << m_fileManagerPtr->m_infoFileptr->inFds[1] <<std::endl;
-			std::cout << "outFds[0] : " << m_fileManagerPtr->m_infoFileptr->outFds[0] << "outFds[1] : " << m_fileManagerPtr->m_infoFileptr->outFds[1] <<std::endl;
+			// std::cout << "after dub2 \n";
+			// std::cout << "inFds[0] : " << m_fileManagerPtr->m_infoFileptr->inFds[0] << "inFds[1] : " << m_fileManagerPtr->m_infoFileptr->inFds[1] <<std::endl;
+			// std::cout << "outFds[0] : " << m_fileManagerPtr->m_infoFileptr->outFds[0] << "outFds[1] : " << m_fileManagerPtr->m_infoFileptr->outFds[1] <<std::endl;
+			std::cerr << "execPath : " << execPath << std::endl;
 
-			execve(execPath.c_str(), const_cast<char* const*>(args), envs);
+			execve(execPath.c_str(), argv2, envs);
+			//std::cout << errno << std::endl;
+			std::cerr << " ERRRRRRRRRR EXECVE\n";
 			exit(EXIT_SUCCESS);
 		}
 	}

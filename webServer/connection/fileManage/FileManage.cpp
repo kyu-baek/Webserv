@@ -1,5 +1,6 @@
 #include "FileManage.hpp"
 
+ #include <sys/wait.h>
 // int
 // FileManage::isValidTarget(std::string &target)
 // {
@@ -153,7 +154,7 @@ FileManage::readFile(int fd)
 	memset(buffer, 0, sizeof(buffer));
 	//std::cout << "reading\n";
 	ssize_t size = read(fd, buffer, BUFFER_SIZE);
-	//std::cout << size << std::endl;
+	std::cout << "size : " << size << std::endl;
 	if (size < 0)
 	{
 		std::cout << "size < 0" << std::endl;
@@ -168,6 +169,7 @@ FileManage::readFile(int fd)
 	if (size < BUFFER_SIZE)
 	{
 		std::cout << "size < BUFFER_SIZE" << std::endl;
+		std::cout << m_file.buffer << std::endl;
 		// close(fd);
 		// _fdMap.erase(fd);
 		return File::Complete;
@@ -188,9 +190,11 @@ int
 FileManage::writePipe(int fd)
 {
     size_t size;
+
     size = write(fd, m_infoFileptr->m_infoClientPtr->reqParser.t_result.body.c_str() + m_file.m_pipe_sentBytes, \
                 m_infoFileptr->m_infoClientPtr->reqParser.t_result.body.length() - m_file.m_pipe_sentBytes);
-    if (size < 0)
+    std::cout << "Write size : " << size << std::endl;
+	if (size < 0)
     {
         return Write::Error;
     }

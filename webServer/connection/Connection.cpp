@@ -31,8 +31,10 @@ Connection::handleEofEvent()
 	std::cout << "	HandleEofEvent : " << currEvent->ident << std::endl;
 	if (m_clientFdMap.find(currEvent->ident) != m_clientFdMap.end())
 	{
+		std::cout << "aaaaaa \n" << std::endl; 
 		deleteClient(currEvent->ident);
 	}
+
 }
 
 void
@@ -167,8 +169,8 @@ Connection::handleReadEvent()
 						m_fileFdMap[pipeWrite].m_fileManagerPtr = m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr;
 						m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr->m_fileFdMapPtr = &m_fileFdMap;
 
-						enrollEventToChangeList(pipeRead, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-						fcntl(pipeRead, F_SETFL, O_NONBLOCK);
+						// enrollEventToChangeList(pipeRead, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+						// fcntl(pipeRead, F_SETFL, O_NONBLOCK);
 						m_fileFdMap.insert(std::make_pair(pipeRead, *(m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr)));
 						m_fileFdMap[pipeRead].m_fileManagerPtr = m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr;
 						m_clientFdMap[currEvent->ident].m_responserPtr->m_fileManagerPtr->m_infoFileptr->m_fileFdMapPtr = &m_fileFdMap;
@@ -293,30 +295,33 @@ Connection::handleWriteEvent()
 				break;
 			}
 
-			if ((m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end()) && (m_fileFdMap[currEvent->ident].m_infoClientPtr->isCgi == true))
+		}
+		if ((m_fileFdMap.find(currEvent->ident) != m_fileFdMap.end()) && (m_fileFdMap[currEvent->ident].m_infoClientPtr->isCgi == true))
+		{
+			std::cout << "FILE WRITE : " << currEvent->ident << std::endl;
+			int result = m_fileFdMap[currEvent->ident].m_infoClientPtr->m_responserPtr->m_fileManagerPtr->writePipe(currEvent->ident);
+			std::cout << "		RESULT OF CGI WRITE : " << result << "\n\n";
+			switch (result)
 			{
-				std::cout << "FILE WRITE : " << currEvent->ident << std::endl;
-				int result = m_fileFdMap[currEvent->ident].m_infoClientPtr->m_responserPtr->m_fileManagerPtr->writePipe(currEvent->ident);
-				std::cout << "		RESULT OF CGI WRITE : " << result << "\n\n";
-				switch (result)
-				{
-				case Write::Error:
-					m_clientFdMap.erase(currEvent->ident);
-					//자원정리
-					close(currEvent->ident);
-					break;
-				
-				case Write::Making:
-					break;
+			case Write::Error:
+				m_clientFdMap.erase(currEvent->ident);
+				//자원정리
+				close(currEvent->ident);
+				break;
+			
+			case Write::Making:
+				break;
 
-				case Write::Complete:
-					m_fileFdMap.erase(currEvent->ident);
-					//자원정리
-					// waitpid(currEvent->ident, NULL, WNOHANG);
-					enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
-					close(currEvent->ident);
-					break;
-				}
+			case Write::Complete:
+				
+				//자원정리
+				enrollEventToChangeList(m_fileFdMap[currEvent->ident].outFds[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+				fcntl(m_fileFdMap[currEvent->ident].outFds[0], F_SETFL, O_NONBLOCK);
+				enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+				close(currEvent->ident);
+				m_fileFdMap.erase(currEvent->ident);
+				std::cout << "close : " << currEvent->ident << std::endl;
+				break;
 			}
 		}
 	}

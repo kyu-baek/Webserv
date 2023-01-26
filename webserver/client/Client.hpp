@@ -27,6 +27,7 @@ class Client : public ResponseInfo
 
 	public:
 		void openResponse();
+		void openErrorResponse(int errorCode);
 		void initResponse();
 		void startResponse();
 

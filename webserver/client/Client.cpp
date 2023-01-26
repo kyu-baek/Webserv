@@ -206,16 +206,55 @@ Client::init_env(void)
 // 	}
 // }
 
+void 
+Client::openErrorResponse(int errorCode)
+{
+	std::string errorPath = "";
+
+	//1. config 파일 내부에 해당 error page 가 설정된 경우
+	std::map<std::string, std::vector<int> >::iterator it;
+	for (it = ptr_server->m_errorPages.begin(); it != ptr_server->m_errorPages.end(); it++)
+	{
+		for (unsigned int i = 0; i < it->second.size(); i++ )
+		{
+			if (it->second.at(i) == errorCode)
+				errorPath = it->first;
+		}
+	}
+	if (errorPath != "")
+	{
+		// infoClient.status = InfoClient::fMaking;
+		std::string tmpPath = "configFiles/test.html";
+		int fd;
+		struct stat ss;
+		if (stat(tmpPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true ||
+			(fd = open(tmpPath.c_str(), O_RDONLY)) == -1)
+			std::cout << "errorPath failier" << std::endl;
+		else
+		{
+			std::cout <<"file size = "<< ss.st_size << std::endl;
+			std::cout << "fd = "<< fd<<std::endl;
+			fcntl(fd, F_SETFL, O_NONBLOCK);
+			// infoClient.file.fd = fd;
+		}
+	}
+	else
+	{
+		std::cout << "error message without file read\n";
+	}
+}
+
 void
 Client::initResponse()
 {
 	setStatusCode(reqParser.t_result.status);
 	setStatusMsg(_statusMap[getStatusCode()]);
 	setDate();
-	if (this->reqParser.t_result.close == true)
-		setConnection("close");
-	else
-		setConnection("keep-alive");
+	// if (this->reqParser.t_result.close == false)
+	// 	setConnection("close");
+	// else
+	// 	setConnection("keep-alive");
+	setConnection("keep-alive");
 	setContentType("text/html");
 	setTransferEncoding("identity");
 	// if (reqParser.t_result.method == POST)

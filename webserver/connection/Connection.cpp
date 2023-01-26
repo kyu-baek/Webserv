@@ -69,7 +69,6 @@ Connection::deleteClient(int socket)
 	{
 		if (*it2 == socket)
 		{
-
 			m_serverMap.find(server)->second.m_clientVec.erase(it2);
 			break;
 		}
@@ -102,9 +101,10 @@ Connection::handleReadEvent()
 	if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
 	{
 		std::cout << "\n--IN CLIENT : " << currEvent->ident << "\n";
-		//system("netstat -an | grep 8080");
+
 		char buffer[BUFFER_SIZE + 1] = {0, };
 		ssize_t valRead = recv(currEvent->ident, buffer, BUFFER_SIZE, 0);
+
 		std::cout << "valRead :" << valRead << std::endl;
 		if (valRead == FAIL)
 		{
@@ -125,7 +125,6 @@ Connection::handleReadEvent()
 		}
 		else if (valRead > 0)
 		{
-
 			buffer[valRead] = '\0';
 			m_clientMap[currEvent->ident].reqParser.makeRequest(buffer);
 			m_clientMap[currEvent->ident].status = Res::None;
@@ -134,7 +133,7 @@ Connection::handleReadEvent()
 			{
 				// std::cout << "\n --REQUEST FROM CLIENT " << currEvent->ident << "--\n :: "
 				// 			  << m_clientMap[currEvent->ident].reqParser.t_result.orig << "\n\n";
-				m_clientMap[currEvent->ident].reqParser.t_result.orig = "";
+				//m_clientMap[currEvent->ident].reqParser.t_result.orig = "";
 
 				if (m_clientMap[currEvent->ident].status == Res::None)
 				{
@@ -183,6 +182,7 @@ Connection::handleReadEvent()
 			if (m_clientMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseError)
 			{
 				std::cerr << "	Error : parse\n";
+				m_clientMap[currEvent->ident].openErrorResponse(m_clientMap[currEvent->ident].reqParser.t_result.status);
 				// 404
 			}
 		}

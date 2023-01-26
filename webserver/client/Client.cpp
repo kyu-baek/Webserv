@@ -41,67 +41,204 @@ Client::openResponse()
 			//404 response
 		}
 	}
-
 	if (this->reqParser.t_result.method == POST)
 	{
 		cwdPath = this->getCwdPath();
-		execPath = getCwdPath() + "/www/cgi-bin" + this->reqParser.t_result.target;
-		cgiOutTarget = "cgiout_" + std::to_string(m_clientFd) + ".html";
-		cgiOutPath = getCwdPath() + "/" + cgiOutTarget;
+		execPath = getCwdPath() + "/www/cgi-bin" + reqParser.t_result.target;
+		std::cout << "execPath : " <<execPath << std::endl;
 
-		char const *args[2] = {execPath.c_str(), NULL};
+		if (pipe(m_file.inFds) == -1)
+			std::cerr <<"ERROR: pipe\n";
+		// if (pipe(m_file.outFds) == -1)
+		// {
+		// 	close(m_file.inFds[0]);
+		// 	close(m_file.inFds[1]);
+		// 	std::cerr <<"ERROR: pipe\n";
+		// }
 
-		this->m_cgi.initEnvMap();
-		if (this->reqParser.t_result.method == GET)
-			this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "GET"));
-		else if (this->reqParser.t_result.method == POST)
-			this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "POST"));
-		else if (this->reqParser.t_result.method == DELETE)
-			this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "DELETE"));
-		this->m_cgi.envMap.insert(std::pair<std::string, std::string>("QUERY_STRING", this->reqParser.t_result.query));
-		this->m_cgi.envMap.insert(std::pair<std::string, std::string>("SERVER_PORT", std::to_string(this->ptr_server->m_port)));
-		this->m_cgi.envMap.insert(std::pair<std::string, std::string>("UPLOAD_PATH", cwdPath + "/db/"));
-		this->m_cgi.envMap.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", args[0]));
-
-		char **envs = new char *[sizeof(char *) *this->m_cgi.envMap.size()];
-		int i = 0;
-		for (std::map<std::string, std::string>::iterator it = this->m_cgi.envMap.begin();\
-			it != this->m_cgi.envMap.end(); ++it)
+		int pid = fork();
+		if (pid == -1)
 		{
-			envs[i] = strdup((it->first + "=" + it->second).c_str());
-			++i;
+			close(m_file.inFds[0]);
+			close(m_file.inFds[1]);
+
+			// close(m_file.outFds[0]);
+			// close(m_file.outFds[1]);
+			std::cerr <<"ERROR: return 500\n";
 		}
 
-		// pipe(m_fileManagerPtr->m_infoFileptr->fds);
-		// int pid = fork();
-		// if (pid > 0)
-		// {
-		// std::cout << "	This is Parent of POST : \n";
-		// 	close(m_fileManagerPtr->m_infoFileptr->fds[0]);
-		// 	waitpid(pid, NULL, WNOHANG);
-		// 	m_infoClientPtr->isCgi = true;
-		// 	m_fileManagerPtr->m_file.fd = m_fileManagerPtr->m_infoFileptr->fds[1];
-		// 	m_fileManagerPtr->m_infoFileptr = new InfoFile(); // to be deleted
-		// 	m_fileManagerPtr->m_infoFileptr->m_infoClientPtr = m_infoClientPtr;
-		// 	m_fileManagerPtr->m_infoFileptr->srcPath = ""; // to be updated when isCgiDone == true
-		// 	m_infoClientPtr->status = Res::Making; // added
-		// }
-		// else if (pid == 0)
-		// {
-		// std::cout << "	This is Child of POST : \n";
-		// 	close(m_fileManagerPtr->m_infoFileptr->fds[1]);
-		// 	dup2(m_fileManagerPtr->m_infoFileptr->fds[0], STDIN_FILENO);
-		// 	close(m_fileManagerPtr->m_infoFileptr->fds[0]);
-		// 	int resFd = open(cgiOutPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0744);
-		// 	if (resFd < 0)
-		// 		std::cerr << "	Error : resFd open()\n";
-		// 	dup2(resFd, STDOUT_FILENO);
-		// 	close(resFd);
-		// 	execve(execPath.c_str(), const_cast<char* const*>(args), envs);
-		// 	exit(EXIT_SUCCESS);
-		// }
+		if (pid == 0)
+		{
+
+			close(m_file.inFds[1]);
+			dup2(m_file.inFds[0], STDIN_FILENO);
+			close(m_file.inFds[0]);
+			
+			// close(m_file.outFds[0]);
+			// dup2(m_file.outFds[1], STDOUT_FILENO);
+			// close(m_file.outFds[1]);
+
+			char **env = init_env();
+			char **arg = new char *[sizeof(char *) * 3];
+			std::string str = "/usr/bin/python3";
+			arg[0] = strdup(str.c_str()); //예시 "/usr/bin/python"
+			arg[1] = strdup(execPath.c_str()); //실행할 파일의 절대경로.
+			arg[2] = NULL;
+
+			// this->m_cgi.initEnvMap();
+			// if (this->reqParser.t_result.method == GET)
+			// 	this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "GET"));
+			// else if (this->reqParser.t_result.method == POST)
+			// 	this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "POST"));
+			// else if (this->reqParser.t_result.method == DELETE)
+			// 	this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "DELETE"));
+			// this->m_cgi.envMap.insert(std::pair<std::string, std::string>("QUERY_STRING", this->reqParser.t_result.query));
+			// this->m_cgi.envMap.insert(std::pair<std::string, std::string>("SERVER_PORT", std::to_string(this->ptr_server->m_port)));
+			// this->m_cgi.envMap.insert(std::pair<std::string, std::string>("UPLOAD_PATH", cwdPath + "/db/"));
+			// this->m_cgi.envMap.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", arg[1]));
+
+			// char **envs = new char *[sizeof(char *) *this->m_cgi.envMap.size()];
+			// int i = 0;
+			// for (std::map<std::string, std::string>::iterator it = this->m_cgi.envMap.begin();\
+			// 	it != this->m_cgi.envMap.end(); ++it)
+			// {
+			// 	envs[i] = strdup((it->first + "=" + it->second).c_str());
+			// 	++i;
+			// }
+
+			
+			// std::cout << "after dub2 \n";
+			// std::cout << "inFds[0] : " << m_file.inFds[0] << "inFds[1] : " << m_file.inFds[1] <<std::endl;
+			// std::cout << "outFds[0] : " << m_file.outFds[0] << "outFds[1] : " << m_file.outFds[1] <<std::endl;
+			std::cerr << "execPath : " << execPath << std::endl;
+
+			if (execve(arg[0], arg, env) == -1)
+			{
+				std::cerr << "ERRRRRRRRRR Errno is : \n";
+				std::cerr << errno << std::endl;
+				exit(EXIT_SUCCESS);
+			}
+			exit(0);
+		}
+		else
+		{
+			std::cout << "	This is Parent of POST : \n";
+			std::cout << "222\n";
+			std::cout << "inFds[0] : " << m_file.inFds[0] << " inFds[1] : " << m_file.inFds[1] <<std::endl;
+			std::cout << "outFds[0] : " << m_file.outFds[0] << " outFds[1] : " << m_file.outFds[1] <<std::endl;
+
+			close(m_file.inFds[0]);
+			close(m_file.outFds[1]);
+
+			// waitpid(pid, NULL, WNOHANG);
+
+			isCgi = true;
+			status = Res::Making;
+			
+			// m_fileManagerPtr->m_file.fd = m_file.inFds[1];
+			// m_fileManagerPtr->m_infoFileptr = new InfoFile(); // to be deleted
+			// m_file.m_infoClientPtr = m_infoClientPtr;
+			// m_file.srcPath = ""; // to be updated when isCgiDone == true
+		
+		
+		}
+
 	}
 }
+
+char **
+Client::init_env(void)
+{
+	// 1. 필요한 정보들 가공해서 map 에 넣기
+	std::map<std::string, std::string> env_map;
+	env_map["AUTH_TYPE"] = ""; // 인증과정 없으므로 NULL
+	env_map["CONTENT_LENGTH"] = "-1"; // 길이 모른다면 -1
+	env_map["CONTENT_TYPE"] = "";
+	env_map["UPLOAD_PATH"] = "/www/cgi-bin";
+	env_map["GATEWAY_INTERFACE"] = "CGI/1.1";
+	env_map["REQUEST_METHOD"] = reqParser.t_result.method;
+	// env_map["QUERY_STRING"] = "";
+	// env_map["REMOTE_ADDR"] = std::string(this->req_info.client_ip);
+	env_map["REMOTE_USER"] = ""; // 인증과정 없으므로 NULL
+	env_map["SERVER_NAME"] = this->reqParser.t_result.host + ":" + this->reqParser.t_result.port;
+	env_map["SERVER_PORT"] = this->reqParser.t_result.port;
+	env_map["SERVER_PROTOCOL"] = this->reqParser.t_result.version;
+	env_map["SERVER_SOFTWARE"] = "webserv/1.0";
+	env_map["PATH_INFO"] = reqParser.t_result.target;
+	// this->set_cgi_env_path(env_map, this->target_info.url);
+	// this->set_cgi_custom_env(env_map, *(this->req_info.header_map));
+	char **cgi_env = new char *[sizeof(char *) * env_map.size() + 1];
+	int i = 0;
+	for(std::map<std::string, std::string>::iterator iter = env_map.begin(); iter != env_map.end(); iter++)
+	{
+		cgi_env[i] = strdup((iter->first + "=" + iter->second).c_str());
+		i++;
+	}
+
+	cgi_env[env_map.size()] = NULL;
+	return (cgi_env);
+}
+
+// 	if (this->reqParser.t_result.method == POST)
+// 	{
+// 		cwdPath = this->getCwdPath();
+// 		execPath = getCwdPath() + "/www/cgi-bin" + this->reqParser.t_result.target;
+// 		cgiOutTarget = "cgiout_" + std::to_string(m_clientFd) + ".html";
+// 		cgiOutPath = getCwdPath() + "/" + cgiOutTarget;
+
+// 		char const *args[2] = {execPath.c_str(), NULL};
+
+// 		this->m_cgi.initEnvMap();
+// 		if (this->reqParser.t_result.method == GET)
+// 			this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "GET"));
+// 		else if (this->reqParser.t_result.method == POST)
+// 			this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "POST"));
+// 		else if (this->reqParser.t_result.method == DELETE)
+// 			this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "DELETE"));
+// 		this->m_cgi.envMap.insert(std::pair<std::string, std::string>("QUERY_STRING", this->reqParser.t_result.query));
+// 		this->m_cgi.envMap.insert(std::pair<std::string, std::string>("SERVER_PORT", std::to_string(this->ptr_server->m_port)));
+// 		this->m_cgi.envMap.insert(std::pair<std::string, std::string>("UPLOAD_PATH", cwdPath + "/db/"));
+// 		this->m_cgi.envMap.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", args[0]));
+
+// 		char **envs = new char *[sizeof(char *) *this->m_cgi.envMap.size()];
+// 		int i = 0;
+// 		for (std::map<std::string, std::string>::iterator it = this->m_cgi.envMap.begin();\
+// 			it != this->m_cgi.envMap.end(); ++it)
+// 		{
+// 			envs[i] = strdup((it->first + "=" + it->second).c_str());
+// 			++i;
+// 		}
+
+// 		// pipe(fds);
+// 		// int pid = fork();
+// 		// if (pid > 0)
+// 		// {
+// 		// std::cout << "	This is Parent of POST : \n";
+// 		// 	close(fds[0]);
+// 		// 	waitpid(pid, NULL, WNOHANG);
+// 		// 	isCgi = true;
+// 		// 	m_fileManagerPtr->m_file.fd = fds[1];
+// 		// 	m_fileManagerPtr->m_infoFileptr = new InfoFile(); // to be deleted
+// 		// 	m_infoClientPtr = m_infoClientPtr;
+// 		// 	srcPath = ""; // to be updated when isCgiDone == true
+// 		// 	status = Res::Making; // added
+// 		// }
+// 		// else if (pid == 0)
+// 		// {
+// 		// std::cout << "	This is Child of POST : \n";
+// 		// 	close(fds[1]);
+// 		// 	dup2(fds[0], STDIN_FILENO);
+// 		// 	close(fds[0]);
+// 		// 	int resFd = open(cgiOutPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0744);
+// 		// 	if (resFd < 0)
+// 		// 		std::cerr << "	Error : resFd open()\n";
+// 		// 	dup2(resFd, STDOUT_FILENO);
+// 		// 	close(resFd);
+// 		// 	execve(execPath.c_str(), const_cast<char* const*>(args), envs);
+// 		// 	exit(EXIT_SUCCESS);
+// 		// }
+// 	}
+// }
 
 void
 Client::initResponse()

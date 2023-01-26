@@ -36,7 +36,7 @@ class Client : public ResponseInfo
 		size_t getSendResultSize() const;
 		const char * getSendResult() const;
 		void clearResponseByte();
-
+		char **init_env(void);
 
 	public:
 		Client()

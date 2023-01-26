@@ -49,12 +49,12 @@ Client::openResponse()
 
 		if (pipe(m_file.inFds) == -1)
 			std::cerr <<"ERROR: pipe\n";
-		// if (pipe(m_file.outFds) == -1)
-		// {
-		// 	close(m_file.inFds[0]);
-		// 	close(m_file.inFds[1]);
-		// 	std::cerr <<"ERROR: pipe\n";
-		// }
+		if (pipe(m_file.outFds) == -1)
+		{
+			close(m_file.inFds[0]);
+			close(m_file.inFds[1]);
+			std::cerr <<"ERROR: pipe\n";
+		}
 
 		int pid = fork();
 		if (pid == -1)
@@ -62,8 +62,8 @@ Client::openResponse()
 			close(m_file.inFds[0]);
 			close(m_file.inFds[1]);
 
-			// close(m_file.outFds[0]);
-			// close(m_file.outFds[1]);
+			close(m_file.outFds[0]);
+			close(m_file.outFds[1]);
 			std::cerr <<"ERROR: return 500\n";
 		}
 
@@ -74,9 +74,9 @@ Client::openResponse()
 			dup2(m_file.inFds[0], STDIN_FILENO);
 			close(m_file.inFds[0]);
 			
-			// close(m_file.outFds[0]);
-			// dup2(m_file.outFds[1], STDOUT_FILENO);
-			// close(m_file.outFds[1]);
+			close(m_file.outFds[0]);
+			dup2(m_file.outFds[1], STDOUT_FILENO);
+			close(m_file.outFds[1]);
 
 			char **env = init_env();
 			char **arg = new char *[sizeof(char *) * 3];
@@ -84,33 +84,6 @@ Client::openResponse()
 			arg[0] = strdup(str.c_str()); //예시 "/usr/bin/python"
 			arg[1] = strdup(execPath.c_str()); //실행할 파일의 절대경로.
 			arg[2] = NULL;
-
-			// this->m_cgi.initEnvMap();
-			// if (this->reqParser.t_result.method == GET)
-			// 	this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "GET"));
-			// else if (this->reqParser.t_result.method == POST)
-			// 	this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "POST"));
-			// else if (this->reqParser.t_result.method == DELETE)
-			// 	this->m_cgi.envMap.insert(std::pair<std::string, std::string>("REQUEST_METHOD", "DELETE"));
-			// this->m_cgi.envMap.insert(std::pair<std::string, std::string>("QUERY_STRING", this->reqParser.t_result.query));
-			// this->m_cgi.envMap.insert(std::pair<std::string, std::string>("SERVER_PORT", std::to_string(this->ptr_server->m_port)));
-			// this->m_cgi.envMap.insert(std::pair<std::string, std::string>("UPLOAD_PATH", cwdPath + "/db/"));
-			// this->m_cgi.envMap.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", arg[1]));
-
-			// char **envs = new char *[sizeof(char *) *this->m_cgi.envMap.size()];
-			// int i = 0;
-			// for (std::map<std::string, std::string>::iterator it = this->m_cgi.envMap.begin();\
-			// 	it != this->m_cgi.envMap.end(); ++it)
-			// {
-			// 	envs[i] = strdup((it->first + "=" + it->second).c_str());
-			// 	++i;
-			// }
-
-			
-			// std::cout << "after dub2 \n";
-			// std::cout << "inFds[0] : " << m_file.inFds[0] << "inFds[1] : " << m_file.inFds[1] <<std::endl;
-			// std::cout << "outFds[0] : " << m_file.outFds[0] << "outFds[1] : " << m_file.outFds[1] <<std::endl;
-			std::cerr << "execPath : " << execPath << std::endl;
 
 			if (execve(arg[0], arg, env) == -1)
 			{
@@ -134,13 +107,6 @@ Client::openResponse()
 
 			isCgi = true;
 			status = Res::Making;
-			
-			// m_fileManagerPtr->m_file.fd = m_file.inFds[1];
-			// m_fileManagerPtr->m_infoFileptr = new InfoFile(); // to be deleted
-			// m_file.m_infoClientPtr = m_infoClientPtr;
-			// m_file.srcPath = ""; // to be updated when isCgiDone == true
-		
-		
 		}
 
 	}
@@ -153,7 +119,7 @@ Client::init_env(void)
 	std::map<std::string, std::string> env_map;
 	env_map["AUTH_TYPE"] = ""; // 인증과정 없으므로 NULL
 	env_map["CONTENT_LENGTH"] = "-1"; // 길이 모른다면 -1
-	env_map["CONTENT_TYPE"] = "";
+	env_map["CONTENT_TYPE"] = reqParser.t_result.header.at("content-type");
 	env_map["UPLOAD_PATH"] = "/www/cgi-bin";
 	env_map["GATEWAY_INTERFACE"] = "CGI/1.1";
 	env_map["REQUEST_METHOD"] = reqParser.t_result.method;
@@ -300,6 +266,7 @@ Client::changePosition(int n)
 int
 Client::sendResponse()
 {
+	std::cout << "SEND DATA\n"<< getSendResult();
 	size_t n = send(m_clientFd, getSendResult(), getSendResultSize(), 0);
 
 	if (n < 0)
@@ -385,6 +352,7 @@ Client::readFile(int fd)
 	//vector<char> 로 바꾸고 미리 파일 크기 만큼   해서 용량을 미리 확보한다.
 	m_file.buffer += std::string(buffer, size);
 	m_file.size += size;
+	std::cout << m_file.size << "<<<<< SIZE_READ\n";
 	if (size < BUFFER_SIZE)
 	{
 		std::cout << "size < BUFFER_SIZE" << std::endl;

@@ -248,7 +248,7 @@ Connection::handleWriteEvent()
 			std::cout << "CLIENT WRITE : " << currEvent->ident << std::endl;
 			int result;
 			// if (m_clientMap[currEvent->ident].isCgi == false)
-				result = m_clientMap[currEvent->ident].sendResponse();
+			result = m_clientMap[currEvent->ident].sendResponse();
 			// if (m_clientMap[currEvent->ident].isCgi == true)
 			// {
 			// 	result = m_clientMap[currEvent->ident].m_responserPtr->sendResponse();

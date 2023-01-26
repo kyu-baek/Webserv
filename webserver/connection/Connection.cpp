@@ -225,8 +225,10 @@ Connection::handleReadEvent()
 				}
 				else	// std::cout << "cgi\n";
 				{
-
-					enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+					m_fileMap[currEvent->ident]->startResponse();
+					enrollEventToChangeList(m_fileMap[currEvent->ident]->m_clientFd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+					close(currEvent->ident);
+					m_fileMap.erase(m_fileMap.find(currEvent->ident)->first);
 				}
 
 				break;
@@ -305,6 +307,7 @@ Connection::handleWriteEvent()
 				//자원정리
 				enrollEventToChangeList(m_fileMap[currEvent->ident]->m_file.outFds[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 				fcntl(m_fileMap[currEvent->ident]->m_file.outFds[0], F_SETFL, O_NONBLOCK);
+				
 				enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 				close(currEvent->ident);
 				m_fileMap.erase(currEvent->ident);

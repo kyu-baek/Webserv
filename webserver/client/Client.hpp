@@ -7,7 +7,6 @@
 #include "../server/Server.hpp"
 #include "ResponseInfo.hpp"
 #include "request/Request.hpp"
-#include "CGI.hpp"
 
 class Client : public ResponseInfo
 {
@@ -36,7 +35,7 @@ class Client : public ResponseInfo
 		size_t getSendResultSize() const;
 		const char * getSendResult() const;
 		void clearResponseByte();
-		char **init_env(void);
+		char **initEnv(void);
 
 	public:
 		Client()
@@ -63,7 +62,6 @@ class Client : public ResponseInfo
 
 	public:
 		FileEvent m_file;
-		CGI m_cgi;
 
 	public:
 		int isValidTarget(std::string &targetPath);

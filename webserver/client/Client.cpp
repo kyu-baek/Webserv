@@ -73,19 +73,19 @@ Client::openResponse()
 			close(m_file.inFds[1]);
 			dup2(m_file.inFds[0], STDIN_FILENO);
 			close(m_file.inFds[0]);
-			
+
 			close(m_file.outFds[0]);
 			dup2(m_file.outFds[1], STDOUT_FILENO);
 			close(m_file.outFds[1]);
 
-			char **env = init_env();
-			char **arg = new char *[sizeof(char *) * 3];
+			char **env = initEnv();
+			char **args = new char *[sizeof(char *) * 3];
 			std::string str = "/usr/bin/python3";
-			arg[0] = strdup(str.c_str()); //예시 "/usr/bin/python"
-			arg[1] = strdup(execPath.c_str()); //실행할 파일의 절대경로.
-			arg[2] = NULL;
+			args[0] = strdup(str.c_str()); //예시 "/usr/bin/python"
+			args[1] = strdup(execPath.c_str()); //실행할 파일의 절대경로.
+			args[2] = NULL;
 
-			if (execve(arg[0], arg, env) == -1)
+			if (execve(args[0], args, env) == -1)
 			{
 				std::cerr << "ERRRRRRRRRR Errno is : \n";
 				std::cerr << errno << std::endl;
@@ -113,24 +113,24 @@ Client::openResponse()
 }
 
 char **
-Client::init_env(void)
+Client::initEnv(void)
 {
-	// 1. 필요한 정보들 가공해서 map 에 넣기
 	std::map<std::string, std::string> env_map;
-	env_map["AUTH_TYPE"] = ""; // 인증과정 없으므로 NULL
-	env_map["CONTENT_LENGTH"] = "-1"; // 길이 모른다면 -1
+	env_map["AUTH_TYPE"] = "";
+	env_map["CONTENT_LENGTH"] = reqParser.t_result.header.at("content-length");
 	env_map["CONTENT_TYPE"] = reqParser.t_result.header.at("content-type");
 	env_map["UPLOAD_PATH"] = "/www/cgi-bin";
 	env_map["GATEWAY_INTERFACE"] = "CGI/1.1";
 	env_map["REQUEST_METHOD"] = reqParser.t_result.method;
-	// env_map["QUERY_STRING"] = "";
-	// env_map["REMOTE_ADDR"] = std::string(this->req_info.client_ip);
-	env_map["REMOTE_USER"] = ""; // 인증과정 없으므로 NULL
+	env_map["QUERY_STRING"] = reqParser.t_result.query;
+	env_map["REMOTE_ADDR"] = ptr_server->m_ipAddress + std::to_string(ptr_server->m_port);
+	env_map["REMOTE_USER"] = "";
 	env_map["SERVER_NAME"] = this->reqParser.t_result.host + ":" + this->reqParser.t_result.port;
 	env_map["SERVER_PORT"] = this->reqParser.t_result.port;
 	env_map["SERVER_PROTOCOL"] = this->reqParser.t_result.version;
 	env_map["SERVER_SOFTWARE"] = "webserv/1.0";
 	env_map["PATH_INFO"] = reqParser.t_result.target;
+
 	// this->set_cgi_env_path(env_map, this->target_info.url);
 	// this->set_cgi_custom_env(env_map, *(this->req_info.header_map));
 	char **cgi_env = new char *[sizeof(char *) * env_map.size() + 1];

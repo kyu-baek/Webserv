@@ -218,6 +218,14 @@ Client::initResponse()
 		setConnection("keep-alive");
 	setContentType("text/html");
 	setTransferEncoding("identity");
+	// if (reqParser.t_result.method == POST)
+	// {	
+	// 	int i;
+	// 	std::stringstream ssInt(reqParser.t_result.header.at("content-length"));
+	// 	ssInt >> i;
+	// 	setContentLength(i);
+	// }
+	// else
 	setContentLength(m_file.buffer.size());
 	setBody(m_file.buffer);
 }
@@ -387,7 +395,8 @@ Client::writePipe(int fd)
     m_file.m_pipe_sentBytes+= size;
     if (m_file.m_pipe_sentBytes >= this->reqParser.t_result.body.length() )
     {
-		std::cout << "PIPE WRITE COMPLETE\n";
+		std::cout << "PIPE WRITE COMPLETE : \n[";
+		std::cout << this->reqParser.t_result.body << "]"<< std::endl;
         return Write::Complete;
     }
     return Write::Making;

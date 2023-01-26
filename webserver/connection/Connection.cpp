@@ -132,9 +132,9 @@ Connection::handleReadEvent()
 
 			if (m_clientMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 			{
-				std::cout << "\n --REQUEST FROM CLIENT " << currEvent->ident << "--\n :: "
-							  << m_clientMap[currEvent->ident].reqParser.t_result.orig << "\n\n";
-					m_clientMap[currEvent->ident].reqParser.t_result.orig = "";
+				// std::cout << "\n --REQUEST FROM CLIENT " << currEvent->ident << "--\n :: "
+				// 			  << m_clientMap[currEvent->ident].reqParser.t_result.orig << "\n\n";
+				m_clientMap[currEvent->ident].reqParser.t_result.orig = "";
 
 				if (m_clientMap[currEvent->ident].status == Res::None)
 				{
@@ -166,7 +166,7 @@ Connection::handleReadEvent()
 						m_fileMap.insert(std::make_pair(pipeWrite, &m_clientMap[currEvent->ident]));
 
 						// enrollEventToChangeList(pipeRead, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-						// fcntl(pipeRead, F_SETFL, O_NONBLOCK);
+						fcntl(pipeRead, F_SETFL, O_NONBLOCK);
 						m_fileMap.insert(std::make_pair(pipeRead, &m_clientMap[currEvent->ident]));
 					}
 				}
@@ -195,7 +195,6 @@ Connection::handleReadEvent()
 		std::cout << "FILE READ : " << currEvent->ident << std::endl;
 		if (m_fileMap[currEvent->ident]->status == Res::Making)
 		{
-
 			int res = m_fileMap[currEvent->ident]->readFile(currEvent->ident);
 
 			switch (res)
@@ -303,11 +302,9 @@ Connection::handleWriteEvent()
 				break;
 
 			case Write::Complete:
+				enrollEventToChangeList(m_fileMap[currEvent->ident]->m_file.outFds[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 
 				//자원정리
-				enrollEventToChangeList(m_fileMap[currEvent->ident]->m_file.outFds[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-				fcntl(m_fileMap[currEvent->ident]->m_file.outFds[0], F_SETFL, O_NONBLOCK);
-				
 				enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 				close(currEvent->ident);
 				m_fileMap.erase(currEvent->ident);

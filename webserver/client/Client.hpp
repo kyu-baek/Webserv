@@ -24,6 +24,7 @@ class Client : public ResponseInfo
 
 	public:
 		int status;
+		std::string path;
 
 	public:
 		void openResponse();
@@ -38,6 +39,7 @@ class Client : public ResponseInfo
 		const char * getSendResult() const;
 		void clearResponseByte();
 		char **init_env(void);
+		std::string cgiFinder(std::string target);
 
 	public:
 		Client()

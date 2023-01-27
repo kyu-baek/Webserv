@@ -102,10 +102,14 @@ Connection::handleReadEvent()
 	{
 		std::cout << "\n--IN CLIENT : " << currEvent->ident << "\n";
 
-		char buffer[BUFFER_SIZE + 1] = {0, };
-		ssize_t valRead = recv(currEvent->ident, buffer, BUFFER_SIZE, 0);
 
+		std::vector<char> reqBuffer(BUFFER_SIZE);
+        int valRead = recv(currEvent->ident, reqBuffer.data(), reqBuffer.size(), 0);
+        std::cout << "valRead :" << valRead << std::endl;
+        std::stringstream ss;
+        ss << std::string(reqBuffer.begin(), reqBuffer.begin() + valRead);
 		std::cout << "valRead :" << valRead << std::endl;
+		
 		if (valRead == FAIL)
 		{
 			std::cerr << currEvent->ident<<"	ERROR : read() in Client Event Case\n";
@@ -125,8 +129,9 @@ Connection::handleReadEvent()
 		}
 		else if (valRead > 0)
 		{
-			buffer[valRead] = '\0';
-			m_clientMap[currEvent->ident].reqParser.makeRequest(buffer);
+  			std::cout << ss.str() << "\n\n";
+            m_clientMap[currEvent->ident].reqParser.makeRequest(ss.str());
+
 			m_clientMap[currEvent->ident].status = Res::None;
 
 			if (m_clientMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)

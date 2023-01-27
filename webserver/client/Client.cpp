@@ -55,7 +55,7 @@ Client::openResponse()
 			close(m_file.inFds[1]);
 			std::cerr <<"ERROR: pipe\n";
 		}
-
+	
 		int pid = fork();
 		if (pid == -1)
 		{
@@ -80,7 +80,10 @@ Client::openResponse()
 
 			char **env = init_env();
 			char **arg = new char *[sizeof(char *) * 3];
+	
 			std::string str = "/usr/bin/python3";
+			if (reqParser.t_result.target == "/upload.pl")
+				str = "/usr/bin/perl";
 			arg[0] = strdup(str.c_str()); //예시 "/usr/bin/python"
 			arg[1] = strdup(execPath.c_str()); //실행할 파일의 절대경로.
 			arg[2] = NULL;
@@ -144,6 +147,43 @@ Client::init_env(void)
 	cgi_env[env_map.size()] = NULL;
 	return (cgi_env);
 }
+
+// char **
+// Client::init_env(void)
+// {
+// 	// 1. 필요한 정보들 가공해서 map 에 넣기
+// 	std::map<std::string, std::string> env_map;
+// 	env_map["AUTH_TYPE"] = ""; // 인증과정 없으므로 NULL
+// 	env_map["CONTENT_LENGTH"] = "-1"; // 길이 모른다면 -1
+// 	env_map["CONTENT_TYPE"] = reqParser.t_result.header.at("content-type");
+// 	env_map["UPLOAD_PATH"] = "/www/cgi-bin";
+// 	env_map["GATEWAY_INTERFACE"] = "CGI/1.1";
+// 	env_map["REQUEST_METHOD"] = reqParser.t_result.method;
+// 	env_map["QUERY_STRING"] = "";
+// 	// env_map["REMOTE_ADDR"] = std::string(this->req_info.client_ip);
+// 	env_map["REMOTE_USER"] = ""; // 인증과정 없으므로 NULL
+// 	env_map["SERVER_NAME"] = this->reqParser.t_result.host + ":" + this->reqParser.t_result.port;
+// 	env_map["SERVER_PORT"] = this->reqParser.t_result.port;
+// 	env_map["SERVER_PROTOCOL"] = this->reqParser.t_result.version;
+// 	env_map["SERVER_SOFTWARE"] = "webserv/1.0";
+// 	env_map["PATH_INFO"] = getCwdPath() +"/www/cgi-bin"+ reqParser.t_result.target;
+// 	env_map["REQUEST_URI"] =  getCwdPath() +"/www/cgi-bin"+ reqParser.t_result.target;
+// 	env_map["SCRIPT_NAME"] = reqParser.t_result.target;
+// 	env_map["SCRIPT_FILENAME"] = getCwdPath() +"/www/cgi-bin"+ reqParser.t_result.target;
+// 	env_map["HTTP_USER_AGENT"] = reqParser.t_result.header.at("user-agent");
+// 	// this->set_cgi_env_path(env_map, this->target_info.url);
+// 	// this->set_cgi_custom_env(env_map, *(this->req_info.header_map));
+// 	char **cgi_env = new char *[sizeof(char *) * env_map.size() + 1];
+// 	int i = 0;
+// 	for(std::map<std::string, std::string>::iterator iter = env_map.begin(); iter != env_map.end(); iter++)
+// 	{
+// 		cgi_env[i] = strdup((iter->first + "=" + iter->second).c_str());
+// 		i++;
+// 	}
+
+// 	cgi_env[env_map.size()] = NULL;
+// 	return (cgi_env);
+// }
 
 // 	if (this->reqParser.t_result.method == POST)
 // 	{
@@ -223,6 +263,7 @@ Client::openErrorResponse(int errorCode)
 	}
 	if (errorPath != "")
 	{
+		this->status = isValidTarget(errorPath);
 		// infoClient.status = InfoClient::fMaking;
 		std::string tmpPath = "configFiles/test.html";
 		int fd;
@@ -331,39 +372,58 @@ Client::clearResponseByte()
 	m_sentBytes = 0;
 	m_totalBytes = 0;
 }
+std::string
+Client::cgiFinder(std::string target)
+{
+	std::string str =  target;
+	//std::string str = "https://robodream.tistory.com/418.py";
+	size_t sub;
 
+	if ((sub = str.rfind(".")) != std::string::npos)
+		str = str.substr(sub);
+	else
+		return "";
+	if (ptr_server->m_cgi.find(str) == ptr_server->m_cgi.end())
+		return "";
+	return ptr_server->m_cgi.find(str)->second.root;
+}
 int
 Client::isValidTarget(std::string &target)
 {
-	if (target == "")
-		return 404;
-	if (target == "/" || target == "/home")
-		target = "index.html";
-	else if (target == "/submit")
-		target = "submit.html";
-	else if (target == "/upload")
-		target = "upload.html";
-	else if (target == "/server")
-		target = "server.html";
-	else if (target == "/post.py")
-        target = "post.py";
-    else if (target == "/upload.py")
-        target = "delete.py";
-    else if (target == "/submit.py")
-        target = "submit.py";
-	else if (target == "/image.jpeg")
-		target = "image.jpeg";
-
+	std::cout << "target : " <<target << std::endl;
+	if (target == "/home")
+		target = "/";
 	if (target == "/favicon.ico")
 		std::cout << "\n-->FAVICON REQUESTED \n";
 
-	std::string srcPath;
-	srcPath = this->getCwdPath() + "/www/statics";
-	if (this->reqParser.t_result.method == POST)
-		srcPath = this->getCwdPath() + "/www/cgi-bin";
+	std::string cgiPath;
+	if ((cgiPath =  cgiFinder(target)) != "")
+	{
+		this->path = this->getCwdPath() + "/" + cgiPath;
+	}
+	else
+	{
+		std::cout << "else\n";
+		std::map<std::string, Location>::iterator it = ptr_server->m_location.begin();
+		for (; it != ptr_server->m_location.end(); it++)
+		{
+			if (it->first == target)
+			{
+				path = this->getCwdPath() + "/"+ it->second.root;
+				target = it->second.index[0];
+				std::cout << "path : " << path <<std::endl;
+			}
+		}
+	}
+	size_t sub;
 
-	std::cout << "SROUCE PATH : " << srcPath << std::endl;
-	DIR *dir = opendir(srcPath.c_str());
+	if ((sub = target.rfind("/")) != std::string::npos)
+		target = target.substr(sub + 1);
+
+
+	std::cout << "SROUCE PATH : " << path << std::endl;
+	DIR *dir = opendir(path.c_str());
+
 	struct dirent *dirent = NULL;
 	while (true)
 	{
@@ -377,7 +437,6 @@ Client::isValidTarget(std::string &target)
 			return (200);
 		}
 	}
-
 	return (404);
 }
 

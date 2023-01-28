@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Little Webserver</title>
+</head>
+<body>
+	<div><a href="/home">Go to index</a></div>
+	<form>
+		<input type="text" id="file-name" name="file-name">
+		<button onclick="deleteResource('delete.py')">Delete</button>
+	</form>
+	<script>
+		function deleteResource(url) {
+			const formData = new FormData();
+			formData.append("file-name", document.getElementById("file-name").value);
+			fetch(url, {
+			  method: 'DELETE',
+			  body: formData
+			});
+		  }
+	</script>
+</body>
+</html>
+

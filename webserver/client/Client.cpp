@@ -3,49 +3,41 @@
 void
 Client::openResponse()
 {
-	std::string cwdPath = this->getCwdPath();
-	std::string srcPath = "";
-	std::string execPath = "";
-
 	this->_statusCode = isValidTarget(this->reqParser.t_result.target);
 	if (this->_statusCode >= 400)
 	{
-		//send Error msg;
+		openErrorResponse(_statusCode);
 		std::cerr << "	ERROR : INVALID TARGET\n";
 		return ;
 	}
 
+	std::cout << "statusRes :" << this->_statusCode << "\n";
 	if (this->reqParser.t_result.method == GET)
 	{
 		std::cerr << "GET RESPONSE\n";
-		std::cerr << "statusRes :" << this->_statusCode << "\n";
-		if (this->_statusCode == 200)
+
+		this->status = Res::Making;
+		int fd = -1;
+		struct stat ss;
+
+		if (stat(m_file.srcPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true || (fd = open(m_file.srcPath.c_str(), O_RDONLY)) == -1)
 		{
-			srcPath = cwdPath + "/www/statics" + this->reqParser.t_result.target;
-			this->status = Res::Making;
-			int fd = -1;
-			struct stat ss;
-			std::cout << "srcPath : "<<srcPath << std::endl;
-			if (stat(srcPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true || (fd = open(srcPath.c_str(), O_RDONLY)) == -1)
-				this->_statusCode = 500;
-			else
-			{
-				m_file.fd = fd;
-				m_file.srcPath = srcPath;
-				this->status = Res::Making;
-			}
-		}
-		if (this->_statusCode == 404 || this->_statusCode == 500)
-		{
+			this->_statusCode = 500;
+			openErrorResponse(_statusCode);
 			std::cerr << "	NO FILE FOUND\n";
-			//404 response
+			return ;
 		}
+		else
+			m_file.fd = fd;
 	}
+
 	if (this->reqParser.t_result.method == POST)
 	{
-		cwdPath = this->getCwdPath();
-		execPath = getCwdPath() + "/www/cgi-bin" + reqParser.t_result.target;
-		std::cout << "execPath : " <<execPath << std::endl;
+		std::cout << "m_file.srcPath  : " <<m_file.srcPath  << std::endl;
+
+		/*
+			file open logic!
+		*/
 
 		if (pipe(m_file.inFds) == -1)
 			std::cerr <<"ERROR: pipe\n";
@@ -81,11 +73,10 @@ Client::openResponse()
 			char **env = init_env();
 			char **arg = new char *[sizeof(char *) * 3];
 	
-			std::string str = "/usr/bin/python3";
-			if (reqParser.t_result.target == "/upload.pl")
-				str = "/usr/bin/perl";
-			arg[0] = strdup(str.c_str()); //예시 "/usr/bin/python"
-			arg[1] = strdup(execPath.c_str()); //실행할 파일의 절대경로.
+			std::string str = getExecvePath();
+
+			arg[0] = strdup(str.c_str()); //예시 "/usr/bin/python3"
+			arg[1] = strdup(m_file.srcPath.c_str()); //실행할 파일의 절대경로.
 			arg[2] = NULL;
 
 			if (execve(arg[0], arg, env) == -1)
@@ -246,49 +237,61 @@ Client::init_env(void)
 // 	}
 // }
 
+void
+Client::openfile(std::string targetPath)
+{
+	std::string tmpPath = path  + targetPath;
+	std::cout << "tmpPath : " << tmpPath << std::endl;
+	int fd;
+	struct stat ss;
+	if (stat(tmpPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true ||
+		(fd = open(tmpPath.c_str(), O_RDONLY)) == -1)
+		std::cout << "errorPath failier" << std::endl;
+	else
+	{
+		std::cout <<"file size = "<< ss.st_size << std::endl;
+		std::cout << "fd = "<< fd<<std::endl;
+		m_file.fd = fd;
+		std::cout << "_statusCode : " << getStatusCode() << std::endl;
+		this->status = Res::Making;
+	}
+}
+
 void 
 Client::openErrorResponse(int errorCode)
 {
+	this->status = Res::Error;
 	std::string errorPath = "";
+	this->_statusCode = errorCode;
 
-	//1. config 파일 내부에 해당 error page 가 설정된 경우
 	std::map<std::string, std::vector<int> >::iterator it;
 	for (it = ptr_server->m_errorPages.begin(); it != ptr_server->m_errorPages.end(); it++)
 	{
 		for (unsigned int i = 0; i < it->second.size(); i++ )
 		{
 			if (it->second.at(i) == errorCode)
+			{
 				errorPath = it->first;
+				this->_statusCode = isValidTarget(errorPath);
+				if (this->_statusCode == 200)
+				{
+					this->_statusCode = errorCode;
+					openfile(errorPath);
+					return ;
+				}
+			}
 		}
 	}
-	if (errorPath != "")
-	{
-		this->status = isValidTarget(errorPath);
-		// infoClient.status = InfoClient::fMaking;
-		std::string tmpPath = "configFiles/test.html";
-		int fd;
-		struct stat ss;
-		if (stat(tmpPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true ||
-			(fd = open(tmpPath.c_str(), O_RDONLY)) == -1)
-			std::cout << "errorPath failier" << std::endl;
-		else
-		{
-			std::cout <<"file size = "<< ss.st_size << std::endl;
-			std::cout << "fd = "<< fd<<std::endl;
-			fcntl(fd, F_SETFL, O_NONBLOCK);
-			// infoClient.file.fd = fd;
-		}
-	}
-	else
-	{
-		std::cout << "error message without file read\n";
-	}
+	this->_statusCode = errorCode;
+	path  = this->getCwdPath();
+	errorPath = "/default.html";
+	openfile(errorPath);
 }
 
 void
 Client::initResponse()
 {
-	setStatusCode(reqParser.t_result.status);
+	setStatusCode(getStatusCode());
 	setStatusMsg(_statusMap[getStatusCode()]);
 	setDate();
 	// if (this->reqParser.t_result.close == false)
@@ -314,7 +317,7 @@ void
 Client::startResponse()
 {
 	initResponse();
-	m_resMsg += getHttpVersion() + " " + std::to_string(getStatusCode()) + CRLF;
+	m_resMsg += getHttpVersion() + " " + std::to_string(getStatusCode())  + " " + getStatusMsg() + CRLF;
 	m_resMsg += "Connection : " + getConnection() + CRLF;
 	m_resMsg += "Date : " + getDate() + CRLF;
 	m_resMsg += "Server : " + getServer() + CRLF;
@@ -372,11 +375,25 @@ Client::clearResponseByte()
 	m_sentBytes = 0;
 	m_totalBytes = 0;
 }
+
+std::string
+Client::getExecvePath()
+{
+	std::string str = reqParser.t_result.target;
+	size_t sub;
+
+	if ((sub = str.rfind(".")) != std::string::npos)
+	{
+		str = str.substr(sub);
+		return ptr_server->m_cgi.find(str)->second.execPath;
+	}
+	return "";
+}
+
 std::string
 Client::cgiFinder(std::string target)
 {
 	std::string str =  target;
-	//std::string str = "https://robodream.tistory.com/418.py";
 	size_t sub;
 
 	if ((sub = str.rfind(".")) != std::string::npos)
@@ -387,6 +404,8 @@ Client::cgiFinder(std::string target)
 		return "";
 	return ptr_server->m_cgi.find(str)->second.root;
 }
+
+
 int
 Client::isValidTarget(std::string &target)
 {
@@ -399,45 +418,96 @@ Client::isValidTarget(std::string &target)
 	std::string cgiPath;
 	if ((cgiPath =  cgiFinder(target)) != "")
 	{
-		this->path = this->getCwdPath() + "/" + cgiPath;
+		m_file.srcPath = this->getCwdPath() + "/" + cgiPath + target;
+		std::cout << "cgi!! : " << path << "\n";
+		return (200);
 	}
 	else
 	{
-		std::cout << "else\n";
 		std::map<std::string, Location>::iterator it = ptr_server->m_location.begin();
 		for (; it != ptr_server->m_location.end(); it++)
 		{
 			if (it->first == target)
 			{
 				path = this->getCwdPath() + "/"+ it->second.root;
-				target = it->second.index[0];
-				std::cout << "path : " << path <<std::endl;
-			}
+				std::cout << "!!path : " << path << std::endl;
+				std::cout << "t->second.index.size() :" << it->second.index.size()  << "\n";
+				if (it->second.index.size() > 0 )
+				{
+					m_file.srcPath = path + "/" +  it->second.index[0];
+					std::cout << "!!target : " << target << std::endl;
+					return (200);
+				}
+				else
+				{
+					int status = openDirectory(target);
+					return status;
+				}
+			}		
 		}
 	}
-	size_t sub;
-
-	if ((sub = target.rfind("/")) != std::string::npos)
-		target = target.substr(sub + 1);
-
-
-	std::cout << "SROUCE PATH : " << path << std::endl;
-	DIR *dir = opendir(path.c_str());
-
-	struct dirent *dirent = NULL;
-	while (true)
+	if (m_file.srcPath  != "")
 	{
-		dirent = readdir(dir);
-		if (!dirent)
-			break;
-		if (strcmp(dirent->d_name, (target).c_str()) == SUCCESS)
-		{
-			std::cout << "\n[!]SRC FOUND \n";
-			(target).insert(0, "/");
-			return (200);
-		}
+		std::cout << "path nothing \n";
+		m_file.srcPath =  this->getCwdPath() +  "/default.html";
+		return (200);
 	}
 	return (404);
+}
+
+int
+Client::openDirectory(std::string &target)
+{
+	size_t sub;
+
+	if (this->status == Res::Error)
+	{
+		size_t sub;
+		std::string str = target;
+		if ((sub = str.rfind(".")) != std::string::npos)
+		{
+			str = str.substr(sub);
+		}
+		target = std::to_string(_statusCode) + str;
+	}
+	else if ((sub = target.rfind("/")) != std::string::npos)
+		target = target.substr(sub + 1);
+	
+	std::cout << "SROUCE target : " << target << std::endl;
+
+	DIR *dir;
+	if ((dir = opendir(path.c_str())))
+	{
+		struct dirent *dirent = NULL;
+		while (true)
+		{
+			dirent = readdir(dir);
+			if (!dirent)
+				break;
+			if (strcmp(dirent->d_name, (target).c_str()) == SUCCESS)
+			{
+				std::cout << "\n[!]SRC FOUND \n";
+				(target).insert(0, "/");
+				m_file.srcPath = path + target;
+				closedir(dir);
+				return (200);
+			}
+		}
+		closedir(dir);
+		return (0);
+	}
+	else 
+	{
+		switch (errno)
+		{
+			case EACCES:
+				return 403;
+			case ENOENT:
+				return 404;
+			default:
+				return 500;
+		}
+	}
 }
 
 
@@ -476,6 +546,16 @@ Client::clearFileEvent()
 	m_file.fd = -1;
 	m_file.size = 0;
 	m_file.buffer = "";
+	m_file.m_sentBytes = 0;
+	m_file.m_totalBytes = 0;
+	m_file.m_pipe_sentBytes = 0;
+	m_file.inFds[0] = -1;
+	m_file.inFds[1] = -1;
+	m_file.outFds[0] = -1;
+	m_file.outFds[1] =-1;
+	m_file.isFile = 0;
+	m_file.srcPath ="";
+	this->path = "";
 }
 
 int

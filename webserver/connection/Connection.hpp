@@ -35,6 +35,16 @@ class Connection : public Multiplex
 		void setNonBlock(int fd);
 		void initClient(int clientSocket);
 		void deleteClient(int socket);
+
+	public:
+		void acceptClient();
+		void clientReadEvent();
+		void fileReadRvent();
+
+	// public:
+	// 	void clientWriteEvent();
+	// 	void fileWriteEvent();
+
 };
 
 #endif

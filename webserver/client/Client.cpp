@@ -3,6 +3,7 @@
 void
 Client::openResponse()
 {
+	this->status = Res::Making;
 	this->_statusCode = isValidTarget(this->reqParser.t_result.target);
 	if (this->_statusCode >= 400)
 	{
@@ -10,16 +11,22 @@ Client::openResponse()
 		std::cerr << "	ERROR : INVALID TARGET\n";
 		return ;
 	}
-
+	
 	std::cout << "statusRes :" << this->_statusCode << "\n";
 	if (this->reqParser.t_result.method == GET)
 	{
 		std::cerr << "GET RESPONSE\n";
 
-		this->status = Res::Making;
+		if (_statusCode == AUTO) //autoindex 
+		{
+			std::cout << "  autoindext \n";
+			this->_statusCode = 200;
+			//readyToAutoindex();
+			return ;
+		}
+
 		int fd = -1;
 		struct stat ss;
-
 		if (stat(m_file.srcPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true || (fd = open(m_file.srcPath.c_str(), O_RDONLY)) == -1)
 		{
 			this->_statusCode = 500;
@@ -438,11 +445,13 @@ Client::isValidTarget(std::string &target)
 					std::cout << "!!target : " << target << std::endl;
 					return (200);
 				}
-				else
+				else if (this->status != Res::Error && it->second.autoListing == true)
 				{
-					int status = openDirectory(target);
-					return status;
+					m_file.srcPath = path + "/";
+					return (AUTO);
 				}
+				else
+					return (openDirectory(target));
 			}		
 		}
 	}
@@ -494,7 +503,7 @@ Client::openDirectory(std::string &target)
 			}
 		}
 		closedir(dir);
-		return (0);
+		return (404);
 	}
 	else 
 	{

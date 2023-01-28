@@ -35,6 +35,7 @@ class Connection : public Multiplex
 		void setNonBlock(int fd);
 		void initClient(int clientSocket);
 		void deleteClient(int socket);
+		void readyToResponse();
 
 	public:
 		void acceptClient();

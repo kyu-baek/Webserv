@@ -292,15 +292,13 @@ Connection::clientReadEvent()
 				if (m_clientMap[currEvent->ident].isCgi == false)
 				{
 					if (m_clientMap[currEvent->ident].m_file.fd != -1)
+						readyToResponse();
+					else // kq 에 등록할 file event 가 없는 경우 -> autoindex listing
 					{
-						int fileFd = m_clientMap[currEvent->ident].m_file.fd;
-						std::cout << "m_file.fd : " << fileFd << std::endl;
-						enrollEventToChangeList(fileFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-						fcntl(fileFd, F_SETFL, O_NONBLOCK);
-						m_fileMap.insert(std::make_pair(fileFd, &m_clientMap[currEvent->ident]));
+						//readyToAutoindex();
+						// m_clientMap[currEvent->ident].startResponse();
+						// enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 					}
-					else
-						std::cerr << "ERROR : openResponse() " << m_clientMap[currEvent->ident].getStatusCode() << "\n";
 				}
 				else
 				{
@@ -322,9 +320,20 @@ Connection::clientReadEvent()
 		{
 			std::cerr << "	Error : parse\n";
 			m_clientMap[currEvent->ident].openErrorResponse(m_clientMap[currEvent->ident].reqParser.t_result.status);
-			// 404
+			if (m_clientMap[currEvent->ident].m_file.fd != -1)
+				readyToResponse();
 		}
 	}
+}
+
+void
+Connection::readyToResponse()
+{
+	int fileFd = m_clientMap[currEvent->ident].m_file.fd;
+	std::cout << "m_file.fd : " << fileFd << std::endl;
+	enrollEventToChangeList(fileFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+	fcntl(fileFd, F_SETFL, O_NONBLOCK);
+	m_fileMap.insert(std::make_pair(fileFd, &m_clientMap[currEvent->ident]));
 }
 
 void

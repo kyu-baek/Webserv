@@ -10,7 +10,7 @@ void Client::openResponse()
 	if (this->_statusCode >= 400)
 	{
 		// send Error msg;
-		std::cerr << "	ERROR : INVALID TARGET\n";
+		std::cerr << "	ERROR : INVALID TARGET : " << reqParser.t_result.target <<"\n";
 		return;
 	}
 
@@ -92,9 +92,7 @@ void Client::openResponse()
 		else
 		{
 			std::cout << "	This is Parent of POST : \n";
-			std::cout << "inFds[0] : " << m_file.inFds[0] << " inFds[1] : " << m_file.inFds[1] << std::endl;
-			std::cout << "outFds[0] : " << m_file.outFds[0] << " outFds[1] : " << m_file.outFds[1] << std::endl;
-
+			
 			close(m_file.inFds[0]);
 			close(m_file.outFds[1]);
 
@@ -334,7 +332,6 @@ int Client::isValidTarget(std::string &target)
 			return (200);
 		}
 	}
-
 	return (404);
 }
 
@@ -371,6 +368,15 @@ void Client::clearFileEvent()
 	m_file.fd = -1;
 	m_file.size = 0;
 	m_file.buffer = "";
+	m_file.m_sentBytes = 0;
+	m_file.m_totalBytes = 0;
+	m_file.m_pipe_sentBytes = 0;
+	m_file.inFds[0] = -1;
+	m_file.inFds[1] = -1;
+	m_file.outFds[0] = -1;
+	m_file.outFds[1] =-1;
+	m_file.isFile = 0;
+	m_file.srcPath ="";
 }
 
 int Client::writePipe(int fd)

@@ -133,9 +133,6 @@ Connection::handleReadEvent()
 		}
 		else if (valRead > 0)
 		{
-			// std::cout << "\n\nFOR REQEUST ----\n";
-			// std::cout << ss.str() << "\n\n";
-			// buffer[valRead] = '\0';
 			m_clientMap[currEvent->ident].reqParser.makeRequest(ss.str());
 			m_clientMap[currEvent->ident].status = Res::None;
 			std::cout << "\nREQUEST STATUS => " << m_clientMap[currEvent->ident].reqParser.t_result.pStatus << "\n\n";
@@ -152,10 +149,11 @@ Connection::handleReadEvent()
 				std::cout << "\n --REQUEST FROM CLIENT " << currEvent->ident << "--\n :: "
 							  << m_clientMap[currEvent->ident].reqParser.t_result.orig << "\n\n";
 					m_clientMap[currEvent->ident].reqParser.t_result.orig = "";
-
+				std::cout << "client status : " <<m_clientMap[currEvent->ident].status << std::endl;
 				if (m_clientMap[currEvent->ident].status == Res::None)
 				{
 					m_clientMap[currEvent->ident].openResponse();
+					std::cout <<currEvent->ident << " isCgi : " << m_clientMap[currEvent->ident].isCgi  << "\n";
 					if (m_clientMap[currEvent->ident].isCgi == false)
 					{
 						if (m_clientMap[currEvent->ident].m_file.fd != -1)
@@ -172,12 +170,11 @@ Connection::handleReadEvent()
 					else
 					{
 						std::cout << "	cgi true" << std::endl;
-						std::cout << "inFds[0] : " << m_clientMap[currEvent->ident].m_file.inFds[0] << "inFds[1]" << m_clientMap[currEvent->ident].m_file.inFds[1] <<std::endl;
-						std::cout << "outFds[0] : " << m_clientMap[currEvent->ident].m_file.outFds[0] << "outFds[1]" << m_clientMap[currEvent->ident].m_file.outFds[1] <<std::endl;
-
+			
 						int pipeWrite = m_clientMap[currEvent->ident].m_file.inFds[1];
 						int pipeRead = m_clientMap[currEvent->ident].m_file.outFds[0];
-
+						std::cout << "pipeWrite : " << pipeWrite <<"\n";
+						std::cout << "pipeRead : " <<pipeRead <<"\n";
 						enrollEventToChangeList(pipeWrite, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 						fcntl(pipeWrite, F_SETFL, O_NONBLOCK);
 						m_fileMap.insert(std::make_pair(pipeWrite, &m_clientMap[currEvent->ident]));
@@ -255,6 +252,7 @@ Connection::handleWriteEvent()
 		if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
 		{
 			std::cout << "CLIENT WRITE : " << currEvent->ident << std::endl;
+			system("netstat -an | grep 8080");
 			int result;
 			// if (m_clientMap[currEvent->ident].isCgi == false)
 			result = m_clientMap[currEvent->ident].sendResponse();
@@ -312,6 +310,7 @@ Connection::handleWriteEvent()
 
 			case Write::Complete:
 				//자원정리
+				system("netstat -an | grep 8080");
 				enrollEventToChangeList(m_fileMap[currEvent->ident]->m_file.outFds[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 				fcntl(m_fileMap[currEvent->ident]->m_file.outFds[0], F_SETFL, O_NONBLOCK);
 

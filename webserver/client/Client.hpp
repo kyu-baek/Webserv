@@ -58,7 +58,7 @@ class Client : public ResponseInfo
 			int isFile;
 			int pid;
 			std::string srcPath;
-			FileEvent() : fd(-1), size(0), buffer(""), m_totalBytes(0), m_sentBytes(0), m_pipe_sentBytes(0){}
+			FileEvent() : fd(-1), size(0), buffer(""), m_totalBytes(0), m_sentBytes(0), m_pipe_sentBytes(0), isFile(0){}
 		};
 
 	public:

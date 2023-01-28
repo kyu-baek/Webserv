@@ -301,12 +301,19 @@ Config::serverInit(int start, int end)
 							methods.push_back(temp);
 						cgi.Methods = methods;
 					}
+					else if (tmp == str)
+						cgi.execPath = file[start].substr(sub + 1);
 				}
 				else
 				{
-					std::cerr << "Error: Location block key value syntax error" << std::endl;
+					std::cerr << "Error: Cgi Location block key value syntax error" << std::endl;
 					exit (1);
 				}
+			}
+			if (cgi.root == "" || cgi.execPath == "")
+			{
+				std::cerr << "Error: Cgi Location block path syntax error" << std::endl;
+				exit (1);
 			}
 			tmpServer.setBCgi(str, cgi);
 		}

@@ -13,6 +13,7 @@ struct CgiConfig
 {
 	std::string root;
 	std::vector<std::string> Methods;
+	std::string execPath;
 };
 
 

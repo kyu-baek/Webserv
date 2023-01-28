@@ -27,6 +27,7 @@ int main(int argc, char** argv)
 		webServer.runServer();
 	}
 	catch (std::exception& e) {
+		std::cerr << e.what() << "\n";
 		return (1);
 	}
 

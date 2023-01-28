@@ -322,16 +322,21 @@ void	Request::parseBody()
 		return ;
 	}
 	t_result.body += _buf;
+	// std::cout << "\n	IN REQUEST PARSER => t_result.body.length() : " << t_result.body.length() << "\n";
+	// std::cout << "	IN REQUEST PARSER => _bodyLength : " << _bodyLength << "\n";
+	// // std::cout << " IN REQUEST -- body : \n" << t_result.body << "\n";
+	// std::cout << " IN REQUEST -- buffer : " << _buf <<"\n\n";
+
 	_buf.clear();
 	// if (t_result.body.size() >= SIZE_MAX_BODY)
 	// {
 	// 	t_result.close = true;
 	// 	return errorStatus("413 Payload Too Large\n", 413, ParseError);
 	// }
-	if (t_result.body.size() >= (unsigned long)_bodyLength)
+	if (t_result.body.length() >= (unsigned long)_bodyLength)
 	{
 		t_result.pStatus = ParseComplete;
-		if (t_result.body.size() != (unsigned long)_bodyLength)
+		if (t_result.body.length() != (unsigned long)_bodyLength)
 			t_result.body.erase(_bodyLength); // should be checked
 	}
 }

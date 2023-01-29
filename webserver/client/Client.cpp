@@ -18,9 +18,14 @@ Client::openResponse()
 	{
 		if (_statusCode == AUTO) //autoindex 
 		{
-			std::cout << "  autoindext \n";
+			std::cout << "  AUTOINDEX \n";
 			this->_statusCode = 200;
-			//readyToAutoindex();
+			starAutoindex();
+			if (this->_statusCode >= 400)
+			{
+				openErrorResponse(_statusCode);
+				std::cerr << "	ERROR : INVALID TARGET\n";
+			}
 			return ;
 		}
 
@@ -168,7 +173,11 @@ Client::openfile(std::string targetPath)
 	struct stat ss;
 	if (stat(tmpPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true ||
 		(fd = open(tmpPath.c_str(), O_RDONLY)) == -1)
-		std::cout << "errorPath failier" << std::endl;
+	{
+		this->status = Res::Error;
+		this->_statusCode = 500;
+		openErrorResponse(_statusCode);
+	}
 	else
 	{
 		std::cout <<"file size = "<< ss.st_size << std::endl;
@@ -224,12 +233,25 @@ Client::initResponse()
 	setTransferEncoding("identity");
 	setContentLength(m_file.buffer.size());
 	setBody(m_file.buffer);
+
 }
 
 void
-Client::startResponse()
+Client::initHeader()
 {
-	initResponse();
+	setServer("webserv");
+	setStatusMsg(_statusMap[getStatusCode()]);
+	setDate();
+	if (this->reqParser.t_result.close == true)
+		setConnection("close");
+	else
+		setConnection("keep-alive");
+	setAcceptRange("bytes");
+}
+
+void
+Client::makeResult()
+{
 	m_resMsg += getHttpVersion() + " " + std::to_string(getStatusCode())  + " " + getStatusMsg() + CRLF;
 	m_resMsg += "Connection : " + getConnection() + CRLF;
 	m_resMsg += "Date : " + getDate() + CRLF;
@@ -238,9 +260,61 @@ Client::startResponse()
 	m_resMsg += "Transfer-Encoding : " + getTransferEncoding() + CRLF;
 	m_resMsg += "Content-Length : " + std::to_string(getContentLength()) + CRLF;
 	m_resMsg += "\n";
-	m_resMsg += m_file.buffer;
+	m_resMsg += getResponseBody();
 	m_totalBytes = m_resMsg.size();
 }
+
+void
+Client::startResponse()
+{
+	initResponse();
+	makeResult();
+}
+
+void
+Client::starAutoindex()
+{
+	std::string body;
+
+	initHeader();
+	setContentType("text/html");
+
+	DIR *dir;
+	if ((dir = opendir(path.c_str())))
+	{
+
+		body += "<html><head>    <title>Index of ";
+		struct dirent *dirent = NULL;
+		while (true)
+		{
+			dirent = readdir(dir);
+			if (!dirent)
+				break;
+			if (strcmp(dirent->d_name, ".") == SUCCESS || strcmp(dirent->d_name, "..") == SUCCESS)
+				continue;
+			body += "    <a href= " + path + "/" + dirent->d_name + ">" + dirent->d_name + "</a><br>";
+		}
+		closedir(dir);
+		body += "</pre>  <hr></body></html>";
+		setBody(body);
+		setContentLength(body.length());
+		makeResult();
+	}
+	else 
+	{
+		switch (errno)
+		{
+			case EACCES:
+				_statusCode = 403;
+			case ENOENT:
+				_statusCode = 404;
+			default:
+				_statusCode = 500;
+		}
+	}
+
+}
+
 
 const char *
 Client::getSendResult() const

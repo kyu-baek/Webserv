@@ -6,6 +6,7 @@ Connection::eventLoop()
 {
 	while (true)
 	{
+		std::cout << "m_fileMap size : " << m_fileMap.size() << std::endl;
 		eventNum = senseEvents();
 		clearChangeList();
 		for (int i = 0; i < eventNum; i++)
@@ -31,8 +32,11 @@ Connection::handleEofEvent()
 	std::cout << "	HandleEofEvent : " << currEvent->ident << std::endl;
 	if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
 	{
-		std::cout << "aaaaaa \n" << std::endl;
-		deleteClient(currEvent->ident);
+		if (m_clientMap[currEvent->ident].status == -1)
+		{
+			std::cout << "aaaaaa \n" << std::endl;
+			deleteClient(currEvent->ident);
+		}
 	}
 
 }
@@ -55,6 +59,7 @@ Connection::deleteClient(int socket)
 	if (m_clientMap.find(socket) == m_clientMap.end())
 		return ;
 	std::map <int, Client*>::iterator it;
+	std::cout << "111m_fileMap size : " << m_fileMap.size() << std::endl;
 	for (it = m_fileMap.begin(); it != m_fileMap.end(); it++)
 	{
 		if (it->second->m_clientFd == (int)socket)
@@ -119,13 +124,16 @@ Connection::handleWriteEvent()
 			m_clientMap[currEvent->ident].status = Res::Making;
 			break;
 		case Send::Complete:
+				m_clientMap[currEvent->ident].status = Res::Complete;
+				std::cout << currEvent->ident << " status : " <<m_clientMap[currEvent->ident].status << std::endl;
 				std::cout << "	--RESPONSE SENT TO CLIENT " << currEvent->ident << "--\n\n";
+				std::cerr << "RESPONSE COMPLIETE TO : " << currEvent->ident << std::endl;
 				std::cout << "m_resMsg : " << m_clientMap[currEvent->ident].m_resMsg << std::endl;
 				enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 				m_clientMap[currEvent->ident].clearResInfo();
 				m_clientMap[currEvent->ident].clearResponseByte();
 				m_clientMap[currEvent->ident].clearFileEvent();
-				m_clientMap[currEvent->ident].status = Res::Complete;
+
 				m_clientMap[currEvent->ident].reqParser.clearRequest();
 				if (m_clientMap[currEvent->ident].isCgi == true)
 				{
@@ -133,6 +141,7 @@ Connection::handleWriteEvent()
 					m_clientMap[currEvent->ident].cgiOutPath = "";
 					m_clientMap[currEvent->ident].cgiOutTarget = "";
 				}
+				waitpid(m_clientMap[currEvent->ident].m_file.pid, NULL, WNOHANG);
 			break;
 		}
 	}
@@ -277,7 +286,6 @@ Connection::clientReadEvent()
 	{
 		std::cout << ss.str() << "\n\n";
 		m_clientMap[currEvent->ident].reqParser.makeRequest(ss.str());
-
 		m_clientMap[currEvent->ident].status = Res::None;
 
 		if (m_clientMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
@@ -368,7 +376,6 @@ Connection::fileReadRvent()
 				enrollEventToChangeList(m_fileMap[currEvent->ident]->m_clientFd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 				close(currEvent->ident);
 				m_fileMap.erase(m_fileMap.find(currEvent->ident)->first);
-				std::cout << "555\n\n";
 			}
 			else	// std::cout << "cgi\n";
 			{

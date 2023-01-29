@@ -15,7 +15,7 @@ class Connection : public Multiplex
 		std::map<int, Server> m_serverMap;
 		std::map<int, Client> m_clientMap;
 		std::map<int, Client*> m_fileMap;
-
+		int sizeBuf;
 	private:
 		int eventNum;
 
@@ -35,6 +35,17 @@ class Connection : public Multiplex
 		void setNonBlock(int fd);
 		void initClient(int clientSocket);
 		void deleteClient(int socket);
+		void readyToResponse();
+
+	public:
+		void acceptClient();
+		void clientReadEvent();
+		void fileReadRvent();
+
+	// public:
+	// 	void clientWriteEvent();
+	// 	void fileWriteEvent();
+
 };
 
 #endif

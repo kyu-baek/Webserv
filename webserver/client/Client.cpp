@@ -283,7 +283,7 @@ Client::starAutoindex()
 	if ((dir = opendir(path.c_str())))
 	{
 
-		body += "<html><head>    <title>Index of ";
+		body = "<html><head>    <title>Index of " + path + "</title></head><body bg color='white'> <hr>  <pre>";
 		struct dirent *dirent = NULL;
 		while (true)
 		{

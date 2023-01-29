@@ -1,16 +1,15 @@
 #!/usr/bin/perl -w
 use CGI;
-use 5.010;
 
-$upload_dir = "/Users/kyu/42project/webserv/www";
+$upload_dir = "../www/html/content";
 
 $query = new CGI;
 
-$filen = $query->param("filename");
-# $filen =~ s/.*[\/\\](.*)/$1/;
-$upload_filehandle = $query->upload("filename");
+$filename = $query->param("file");
+$filename =~ s/.*[\/\\](.*)/$1/;
+$upload_filehandle = $query->upload("file");
 
-open UPLOADFILE, ">$upload_dir/$filen";
+open UPLOADFILE, ">$upload_dir/$filename";
 
 while ( <$upload_filehandle> )
 {
@@ -28,7 +27,41 @@ print <<END_HTML;
 </HEAD>
 <BODY>
 <P>Thanks for uploading your file!</P>
-<P>Your file: $upload_dir/$filen</P>
+<P>Your file: $upload_dir/$filename</P>
 </BODY>
 </HTML>
 END_HTML
+
+# #!/usr/bin/perl -w
+# use CGI;
+
+# $upload_dir = "/Users/kyu/42project/webserv/database";
+
+# $query = new CGI;
+
+# $filename = $query->param("filename");
+# $filename =~ s/.*[\/\\](.*)/$1/;
+# $upload_filehandle = $query->upload("filename");
+
+# open UPLOADFILE, ">$upload_dir/$filename";
+
+# while ( <$upload_filehandle> )
+# {
+#     print UPLOADFILE;
+# }
+
+# close UPLOADFILE;
+
+# print "Status: 200 OK\r\n";
+# print $query->header ( );
+# print <<END_HTML;
+# <HTML>
+# <HEAD>
+# <TITLE>Thanks!</TITLE>
+# </HEAD>
+# <BODY>
+# <P>Thanks for uploading your file!</P>
+# <P>Your file: $upload_dir/$filename</P>
+# </BODY>
+# </HTML>
+# END_HTML

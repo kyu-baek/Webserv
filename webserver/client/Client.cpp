@@ -39,7 +39,7 @@ Client::openResponse()
 	if (this->reqParser.t_result.method == POST || this->reqParser.t_result.method == DELETE)
 	{
 		std::cout << "m_file.srcPath  : " <<m_file.srcPath  << std::endl;
-
+		char **env = init_env();
 		/*
 			file open logic!
 		*/
@@ -75,7 +75,6 @@ Client::openResponse()
 			dup2(m_file.outFds[1], STDOUT_FILENO);
 			close(m_file.outFds[1]);
 
-			char **env = init_env();
 			char **arg = new char *[sizeof(char *) * 3];
 	
 			std::string str = getExecvePath();
@@ -127,11 +126,21 @@ Client::init_env(void)
 	env_map["REMOTE_USER"] = ""; // 인증과정 없으므로 NULL
 	env_map["SERVER_NAME"] = this->reqParser.t_result.host + ":" + this->reqParser.t_result.port;
 	env_map["SERVER_PORT"] = this->reqParser.t_result.port;
-	env_map["SERVER_PROTOCOL"] = this->reqParser.t_result.version;
+	env_map["SERVER_PROTOCOL"] = "HTTP/1.1";
 	env_map["SERVER_SOFTWARE"] = "webserv/1.0";
 	env_map["PATH_INFO"] = reqParser.t_result.target;
-	// this->set_cgi_env_path(env_map, this->target_info.url);
-	// this->set_cgi_custom_env(env_map, *(this->req_info.header_map));
+
+	// std::map<std::string, std::string>::iterator it;
+	// for (it = )
+	env_map["HTTP_CONTENT_TYPE"] = reqParser.t_result.header.at("content-type");
+	env_map["HTTP_CONTENT_LENGTH"] = reqParser.t_result.header.at("content-length");
+	std::cout << "	ENV!\n"; 
+	std::map<std::string, std::string>::iterator it;
+	for (it = env_map.begin() ; it != env_map.end(); it++)
+	{
+		std::cout << it->first << " : [" << it->second << "]" << std::endl;
+	}
+
 	char **cgi_env = new char *[sizeof(char *) * env_map.size() + 1];
 	int i = 0;
 	for(std::map<std::string, std::string>::iterator iter = env_map.begin(); iter != env_map.end(); iter++)

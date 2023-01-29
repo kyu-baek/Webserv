@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
 	<title>Little Webserver</title>
@@ -7,7 +7,7 @@
 	<div><a href="/home">Go to index</a></div>
 	<form>
 		<input type="text" id="file-name" name="file-name">
-		<button onclick="deleteResource('delete.py')">Delete</button>
+		<button onclick="deleteResource('/delete.py')">Delete</button>
 	</form>
 	<script>
 		function deleteResource(url) {
@@ -20,4 +20,21 @@
 		  }
 	</script>
 </body>
+</html> -->
+
+
+<html>
+
+	<head>
+		<title>Little Webserver</title>
+	</head>
+	
+	<body>
+		<div><a href="/home">Go to inddddex</a></div>
+		<form action='delete.py' method='POST' enctype='multipart/form-data'>
+		<input type='text' name='filename'> ><br>
+		<input type='hidden' name='_method' value="DELETE" > ><br>
+		<input type='submit' value='Delete'><br>
+		</form>
+	 </body>
 </html>

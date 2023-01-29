@@ -2,6 +2,7 @@
 import sys, os, base64
 
 origin = sys.stdin.read()
+
 content = origin.split("\r\n")
 
 # print(content)
@@ -41,7 +42,8 @@ end_idx = origin.rfind(boundary) - 2
 # print(origin)
 # print(start_idx)
 # print(end_idx)
-bfile_content = origin[start_idx:end_idx]
+
+bfile_content = bytes(origin[start_idx:end_idx])
 # print(bfile_content)
 
 # # save the file
@@ -70,7 +72,7 @@ if (content_type.split(': ')[1] != "image/jpeg" and content_type.split(': ')[1] 
 else:
 	print(bfile_content)
 	f = open(upload_path + filename, "wb")
-	res = f.write(bfile_content)
+	res = f.write(bfile_content.encode('utf-8'))
 	if (res == -1):
 		print("FAILED")
 	print("<h1>")

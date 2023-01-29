@@ -202,8 +202,8 @@ void	Request::tokenizeHeader()
 		while (isOWS(_head[pos_end]))
 			--pos_end;
 		fieldValue = _head.substr(pos_start, pos_end - pos_start + 1);
-		std::transform(fieldValue.begin(), fieldValue.end(), fieldValue.begin(), ::tolower);
-		std::transform(fieldName.begin(), fieldName.end(), fieldName.begin(), ::tolower);
+		// std::transform(fieldValue.begin(), fieldValue.end(), fieldValue.begin(), ::tolower);
+		// std::transform(fieldName.begin(), fieldName.end(), fieldName.begin(), ::tolower);
 		t_result.header[fieldName] = fieldValue;
 		pos_nl_prev = pos_nl_next;
 	}
@@ -240,7 +240,7 @@ void 	Request::checkHost()
 {
 	std::map<std::string, std::string>::iterator it;
 
-	it = t_result.header.find("host");
+	it = t_result.header.find("Host");
 	if (it == t_result.header.end())
 		return errorStatus("Host cannot be empty\n", 400, ParseError);
 //	if (verifyHost())
@@ -254,7 +254,7 @@ void 	Request::checkBodyLength()
 {
 	std::map<std::string, std::string>::iterator it;
 
-	it = t_result.header.find("content-length");
+	it = t_result.header.find("Content-Length");
 	if (it == t_result.header.end())
 		_bodyLength = -1;
 	else
@@ -274,7 +274,7 @@ void 	Request::checkBodyLength()
 		// }
 	}
 
-	it = t_result.header.find("transfer-encoding");
+	it = t_result.header.find("Transfer-Encoding");
 	if (it != t_result.header.end())
 	{
 		if (_bodyLength != -1)
@@ -296,10 +296,10 @@ void 	Request::checkConnection()
 {
 	std::map<std::string, std::string>::iterator it;
 
-	it = t_result.header.find("connection");
+	it = t_result.header.find("Connection");
 	if (it == t_result.header.end())
 		return ;
-	if (it->second.compare("close") == true)
+	if (it->second.compare("Close") == true)
 		t_result.close = true;
 }
 

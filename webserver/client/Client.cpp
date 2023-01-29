@@ -1,4 +1,5 @@
 #include "Client.hpp"
+#include <algorithm>
 
 void
 Client::openResponse()
@@ -39,11 +40,10 @@ Client::openResponse()
 	if (this->reqParser.t_result.method == POST || this->reqParser.t_result.method == DELETE)
 	{
 		std::cout << "m_file.srcPath  : " <<m_file.srcPath  << std::endl;
-		char **env = init_env();
 		/*
 			file open logic!
 		*/
-
+		char **env = init_env();
 		if (pipe(m_file.inFds) == -1)
 			std::cerr <<"ERROR: pipe\n";
 		if (pipe(m_file.outFds) == -1)
@@ -116,30 +116,40 @@ Client::init_env(void)
 	// 1. 필요한 정보들 가공해서 map 에 넣기
 	std::map<std::string, std::string> env_map;
 	env_map["AUTH_TYPE"] = ""; // 인증과정 없으므로 NULL
-	env_map["CONTENT_LENGTH"] = reqParser.t_result.header.at("content-length");
-	env_map["CONTENT_TYPE"] = reqParser.t_result.header.at("content-type");
+	env_map["CONTENT_LENGTH"] = reqParser.t_result.header.at("Content-Length");
+	env_map["CONTENT_TYPE"] = reqParser.t_result.header.at("Content-Type");
 	env_map["UPLOAD_PATH"] = getCwdPath() + "/database/";
 	env_map["GATEWAY_INTERFACE"] = "CGI/1.1";
-	env_map["REQUEST_METHOD"] = reqParser.t_result.method;
+	env_map["REQUEST_METHOD"] = "POST";
 	env_map["QUERY_STRING"] = reqParser.t_result.query;
-	env_map["REMOTE_ADDR"] = ptr_server->m_ipAddress + std::to_string(ptr_server->m_port);
+	env_map["REMOTE_ADDR"] = ptr_server->m_ipAddress;
 	env_map["REMOTE_USER"] = ""; // 인증과정 없으므로 NULL
-	env_map["SERVER_NAME"] = this->reqParser.t_result.host + ":" + this->reqParser.t_result.port;
-	env_map["SERVER_PORT"] = this->reqParser.t_result.port;
+	env_map["SERVER_NAME"] = "127.0.0.1";
+	env_map["SERVER_PORT"] = "8080";
 	env_map["SERVER_PROTOCOL"] = "HTTP/1.1";
-	env_map["SERVER_SOFTWARE"] = "webserv/1.0";
-	env_map["PATH_INFO"] = reqParser.t_result.target;
-
-	// std::map<std::string, std::string>::iterator it;
-	// for (it = )
-	env_map["HTTP_CONTENT_TYPE"] = reqParser.t_result.header.at("content-type");
-	env_map["HTTP_CONTENT_LENGTH"] = reqParser.t_result.header.at("content-length");
-	std::cout << "	ENV!\n"; 
+	env_map["SERVER_SOFTWARE"] = "webserv/1.1";
+	env_map["PATH_INFO"] = "/usr/bin/perl";
+	env_map["REQUEST_URI"] = "/usr/bin/perl";
+	env_map["SCRIPT_NAME"] = "webserv/1.1";
+	std::cout << "	headder!\n"; 
 	std::map<std::string, std::string>::iterator it;
-	for (it = env_map.begin() ; it != env_map.end(); it++)
+	for (it = reqParser.t_result.header.begin(); it != reqParser.t_result.header.end(); it++)
 	{
-		std::cout << it->first << " : [" << it->second << "]" << std::endl;
+		
+		std::string::size_type sub;
+		std::string str = it->first;
+		for (unsigned long i = 0; i < str.size(); i++) { str[i] = std::toupper(str[i]); }
+		while ((sub = str.rfind("-")) != std::string::npos)
+		{
+			str = str.replace(sub, 1, 1, '_');
+		}
+		str.insert(0, "HTTP_");
+		env_map[str] = it->second;
 	}
+	std::cout << "	ENV!\n";
+	std::map<std::string, std::string>::iterator it2;
+	for (it2 = env_map.begin() ; it2 != env_map.end(); it2++)
+		std::cout << it2->first << " : [" << it2->second << "]\n";
 
 	char **cgi_env = new char *[sizeof(char *) * env_map.size() + 1];
 	int i = 0;
@@ -149,7 +159,7 @@ Client::init_env(void)
 		i++;
 	}
 
-	cgi_env[env_map.size()] = NULL;
+	cgi_env[i] = NULL;
 	return (cgi_env);
 }
 

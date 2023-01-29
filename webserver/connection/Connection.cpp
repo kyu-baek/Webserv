@@ -284,7 +284,7 @@ Connection::clientReadEvent()
 	}
 	else if (valRead > 0)
 	{
-		std::cout << ss.str() << "\n\n";
+		std::cout << "\n\n\nRequest \n" << ss.str() << "\n\n";
 		m_clientMap[currEvent->ident].reqParser.makeRequest(ss.str());
 		m_clientMap[currEvent->ident].status = Res::None;
 

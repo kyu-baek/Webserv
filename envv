@@ -1,0 +1,32 @@
+SERVER_SOFTWARE=webserv/1.1
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_NAME=127.0.0.1
+GATEWAY_INTERFACE=CGI/1.1
+SERVER_PORT=4242
+REQUEST_METHOD=POST
+SCRIPT_NAME=webserv/1.1
+QUERY_STRING=
+REMOTE_ADDR=127.0.0.1
+CONTENT_TYPE=multipart/form-data; boundary=----WebKitFormBoundaryAtKl7AR8RAA887M1
+PATH_INFO=/usr/bin/perl
+REQUEST_URI=/usr/bin/perl
+HTTP_ACCEPT=text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+HTTP_ACCEPT_ENCODING=gzip, deflate, br
+HTTP_ACCEPT_LANGUAGE=en-US,en;q=0.9,ko;q=0.8
+HTTP_CACHE_CONTROL=max-age=0
+HTTP_CONNECTION=keep-alive
+HTTP_CONTENT_LENGTH=195
+HTTP_CONTENT_TYPE=multipart/form-data; boundary=----WebKitFormBoundaryAtKl7AR8RAA887M1
+HTTP_COOKIE=WEBSERV_ID=ARu0fGKPijuPU6s
+HTTP_HOST=localhost:4242
+HTTP_ORIGIN=http://localhost:4242
+HTTP_REFERER=http://localhost:4242/upload.html
+HTTP_SEC_FETCH_DEST=document
+HTTP_SEC_FETCH_MODE=navigate
+HTTP_SEC_FETCH_SITE=same-origin
+HTTP_SEC_FETCH_USER=?1
+HTTP_UPGRADE_INSECURE_REQUESTS=1
+HTTP_USER_AGENT=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36
+HTTP_SEC_CH_UA="Chromium";v="106", "Google Chrome";v="106", "Not;A=Brand";v="99"
+HTTP_SEC_CH_UA_MOBILE=?0
+HTTP_SEC_CH_UA_PLATFORM="macOS"

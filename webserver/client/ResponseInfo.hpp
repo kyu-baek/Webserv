@@ -87,6 +87,18 @@ class ResponseInfo
 			std::string cwdPath(cwd);
 			return (cwdPath);
 		}
+		
+		std::string getMethod(int methodNum)
+		{
+			if (methodNum == GET)
+				return ("GET");
+			else if (methodNum == POST)
+				return ("POST");
+			else if (methodNum == DELETE)
+				return ("DELETE");
+			else
+				return (NULL);
+		}
 
 		void clearResInfo() {
 			_statusCode = 0;

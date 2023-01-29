@@ -113,43 +113,39 @@ Client::openResponse()
 char **
 Client::init_env(void)
 {
-	// 1. 필요한 정보들 가공해서 map 에 넣기
 	std::map<std::string, std::string> env_map;
+	
 	env_map["AUTH_TYPE"] = ""; // 인증과정 없으므로 NULL
 	env_map["CONTENT_LENGTH"] = reqParser.t_result.header.at("Content-Length");
 	env_map["CONTENT_TYPE"] = reqParser.t_result.header.at("Content-Type");
 	env_map["UPLOAD_PATH"] = getCwdPath() + "/database/";
-	env_map["GATEWAY_INTERFACE"] = "CGI/1.1";
-	env_map["REQUEST_METHOD"] = "POST";
+	env_map["REQUEST_METHOD"] = getMethod(reqParser.t_result.method);
 	env_map["QUERY_STRING"] = reqParser.t_result.query;
 	env_map["REMOTE_ADDR"] = ptr_server->m_ipAddress;
 	env_map["REMOTE_USER"] = ""; // 인증과정 없으므로 NULL
-	env_map["SERVER_NAME"] = "127.0.0.1";
-	env_map["SERVER_PORT"] = "8080";
+	env_map["SERVER_NAME"] = ptr_server->m_ipAddress;
+	env_map["SERVER_PORT"] = std::to_string(ptr_server->m_port);
+	env_map["GATEWAY_INTERFACE"] = "CGI/1.1";
 	env_map["SERVER_PROTOCOL"] = "HTTP/1.1";
 	env_map["SERVER_SOFTWARE"] = "webserv/1.1";
-	env_map["PATH_INFO"] = "/usr/bin/perl";
-	env_map["REQUEST_URI"] = "/usr/bin/perl";
 	env_map["SCRIPT_NAME"] = "webserv/1.1";
-	std::cout << "	headder!\n"; 
+	env_map["PATH_INFO"] = getExecvePath();
+	env_map["REQUEST_URI"] = getExecvePath();
+
 	std::map<std::string, std::string>::iterator it;
 	for (it = reqParser.t_result.header.begin(); it != reqParser.t_result.header.end(); it++)
 	{
-		
 		std::string::size_type sub;
 		std::string str = it->first;
 		for (unsigned long i = 0; i < str.size(); i++) { str[i] = std::toupper(str[i]); }
-		while ((sub = str.rfind("-")) != std::string::npos)
-		{
-			str = str.replace(sub, 1, 1, '_');
-		}
+		while ((sub = str.rfind("-")) != std::string::npos) { str = str.replace(sub, 1, 1, '_'); }
 		str.insert(0, "HTTP_");
 		env_map[str] = it->second;
 	}
-	std::cout << "	ENV!\n";
-	std::map<std::string, std::string>::iterator it2;
-	for (it2 = env_map.begin() ; it2 != env_map.end(); it2++)
-		std::cout << it2->first << " : [" << it2->second << "]\n";
+	// std::cout << "	ENV!\n";
+	// std::map<std::string, std::string>::iterator it2;
+	// for (it2 = env_map.begin() ; it2 != env_map.end(); it2++)
+	// 	std::cout << it2->first << " : [" << it2->second << "]\n";
 
 	char **cgi_env = new char *[sizeof(char *) * env_map.size() + 1];
 	int i = 0;

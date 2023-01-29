@@ -293,7 +293,9 @@ Connection::clientReadEvent()
 			// std::cout << "\n --REQUEST FROM CLIENT " << currEvent->ident << "--\n :: "
 			// 			  << m_clientMap[currEvent->ident].reqParser.t_result.orig << "\n\n";
 			//m_clientMap[currEvent->ident].reqParser.t_result.orig = "";
-
+			std::cout << "\n\n\nprintRequest\n";
+			m_clientMap[currEvent->ident].reqParser.printRequest();
+			std::cout << "\n\n\n";
 			if (m_clientMap[currEvent->ident].status == Res::None)
 			{
 				m_clientMap[currEvent->ident].openResponse();

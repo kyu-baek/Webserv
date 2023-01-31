@@ -25,6 +25,7 @@ class ResponseInfo
 		std::string _connection; //keep-alive etc
 		std::string _date;
 		std::string _server;
+		std::string _acceptRange;
 		std::string _contentType; //text/html etc
 		std::string _transferEncoding; //chunked etc
 		unsigned int _contentLength;
@@ -34,10 +35,11 @@ class ResponseInfo
 
 	public:
 		ResponseInfo()
-		: _httpVersion("HTTP/1.1"), _statusCode(0), _statusMsg(""), _connection(""), _date(timeStamp()), \
-		_server(""), _contentType(""), _transferEncoding(""), _contentLength(0), _contentEncoding(""), _resBody("") {
+		: _httpVersion("HTTP/1.1"), _statusCode(0), _statusMsg(""), _connection(""), _date(timeStamp()),\
+		_server(""), _acceptRange(""), _contentType(""), _transferEncoding(""), _contentLength(0), _contentEncoding(""), _resBody("") {
 			initStatusMap();
 		}
+		void setServer(std::string server) { _server = server; }
 		void setStatusCode(int code) { _statusCode = code; }
 		void setStatusMsg(std::string msg) { _statusMsg = msg; }
 		void setConnection(std::string connection) { _connection = connection; }
@@ -46,7 +48,8 @@ class ResponseInfo
 		void setContentLength(unsigned int len) { _contentLength = len; }
 		void setContentEncoding(std::string encod ) { _contentEncoding = encod; }
 		void setBody(std::string resBody) { _resBody = resBody; }
-		void setDate( ) { _date = timeStamp(); }
+		void setDate() { _date = timeStamp(); }
+		void setAcceptRange(std::string rangeType) {_acceptRange = rangeType; }
 		std::string getHttpVersion() {return (_httpVersion);}
 		int getStatusCode() { return (_statusCode); }
 		std::string getStatusMsg() { return (_statusMsg); }

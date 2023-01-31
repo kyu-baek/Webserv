@@ -32,8 +32,11 @@ class Client : public ResponseInfo
 	public:
 		void openResponse();
 		void openErrorResponse(int errorCode);
+		void initHeader();
 		void initResponse();
+		void makeResult();
 		void startResponse();
+		void starAutoindex();
 		void openfile(std::string targetPath);
 		std::string getExecvePath();
 

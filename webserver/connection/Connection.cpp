@@ -290,11 +290,8 @@ Connection::clientReadEvent()
 
 		if (m_clientMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 		{
-			// std::cout << "\n --REQUEST FROM CLIENT " << currEvent->ident << "--\n :: "
-			// 			  << m_clientMap[currEvent->ident].reqParser.t_result.orig << "\n\n";
-			//m_clientMap[currEvent->ident].reqParser.t_result.orig = "";
-			std::cout << "\n\n\nprintRequest\n";
-			m_clientMap[currEvent->ident].reqParser.printRequest();
+			// std::cout << "\n\n\nprintRequest\n";
+			// m_clientMap[currEvent->ident].reqParser.printRequest();
 			std::cout << "\n\n\n";
 			if (m_clientMap[currEvent->ident].status == Res::None)
 			{
@@ -305,9 +302,7 @@ Connection::clientReadEvent()
 						readyToResponse();
 					else // kq 에 등록할 file event 가 없는 경우 -> autoindex listing
 					{
-						//readyToAutoindex();
-						// m_clientMap[currEvent->ident].startResponse();
-						// enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+						enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 					}
 				}
 				else

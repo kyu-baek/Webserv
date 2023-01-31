@@ -1,7 +1,8 @@
 #!/usr/bin/perl -w
 use CGI;
+use Env;
 
-$upload_dir = "/Users/kbaek/42seoul/webserv/database";
+$upload_dir = $ENV{'UPLOAD_PATH'};
 
 $query = new CGI;
 
@@ -18,14 +19,16 @@ while ( <$upload_filehandle> )
 
 close UPLOADFILE;
 
-print "Status: 200 OK\r\n";
-print $query->header ( );
+# print "Status: 200 OK\r\n";
+# print $query->header ( );
+
 print <<END_HTML;
 <HTML>
 <HEAD>
 <TITLE>Thanks!</TITLE>
 </HEAD>
 <BODY>
+<div><a href="/home">Go to home</a></div>
 <P>Thanks for uploading your file!</P>
 <P>Your file: $upload_dir/$filename</P>
 </BODY>

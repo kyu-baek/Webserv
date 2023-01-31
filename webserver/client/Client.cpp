@@ -12,19 +12,28 @@ Client::openResponse()
 		std::cerr << "	ERROR : INVALID TARGET\n";
 		return ;
 	}
-	
+
 	std::cout << "statusRes :" << this->_statusCode << "\n";
 	if (this->reqParser.t_result.method == GET)
 	{
-		if (_statusCode == AUTO) //autoindex 
+		if (_statusCode == AUTO) //autoindex
 		{
 			std::cout << "  AUTOINDEX \n";
 			this->_statusCode = 200;
-			starAutoindex();
+			startAutoindex();
 			if (this->_statusCode >= 400)
 			{
 				openErrorResponse(_statusCode);
 				std::cerr << "	ERROR : INVALID TARGET\n";
+			}
+			else if (_statusCode == INDEX)
+			{
+				this->_statusCode = 200;
+				std::cout << "download!\n";
+				std::cout << "ppp = " << path << std::endl;
+				path = path.substr(0, path.length() - 1);
+				std::cout << "new path : " << path << std::endl;
+				startShowFile();
 			}
 			return ;
 		}
@@ -48,7 +57,7 @@ Client::openResponse()
 		/*
 			file open logic!
 		*/
-		char **env = init_env();
+		char **env = initEnv();
 		if (pipe(m_file.inFds) == -1)
 			std::cerr <<"ERROR: pipe\n";
 		if (pipe(m_file.outFds) == -1)
@@ -57,7 +66,7 @@ Client::openResponse()
 			close(m_file.inFds[1]);
 			std::cerr <<"ERROR: pipe\n";
 		}
-	
+
 		m_file.pid = fork();
 		if (m_file.pid == -1)
 		{
@@ -75,13 +84,13 @@ Client::openResponse()
 			close(m_file.inFds[1]);
 			dup2(m_file.inFds[0], STDIN_FILENO);
 			close(m_file.inFds[0]);
-			
+
 			close(m_file.outFds[0]);
 			dup2(m_file.outFds[1], STDOUT_FILENO);
 			close(m_file.outFds[1]);
 
 			char **arg = new char *[sizeof(char *) * 3];
-	
+
 			std::string str = getExecvePath();
 
 			arg[0] = strdup(str.c_str()); //예시 "/usr/bin/python3"
@@ -116,10 +125,10 @@ Client::openResponse()
 }
 
 char **
-Client::init_env(void)
+Client::initEnv(void)
 {
 	std::map<std::string, std::string> env_map;
-	
+
 	env_map["AUTH_TYPE"] = ""; // 인증과정 없으므로 NULL
 	env_map["CONTENT_LENGTH"] = reqParser.t_result.header.at("Content-Length");
 	env_map["CONTENT_TYPE"] = reqParser.t_result.header.at("Content-Type");
@@ -188,7 +197,7 @@ Client::openfile(std::string targetPath)
 	}
 }
 
-void 
+void
 Client::openErrorResponse(int errorCode)
 {
 	this->status = Res::Error;
@@ -222,14 +231,29 @@ Client::openErrorResponse(int errorCode)
 void
 Client::initResponse()
 {
+	std::map<std::string, std::string> mimeMap = initMimeMap();
+	std::map<std::string, std::string>::iterator it;
+
 	setStatusCode(getStatusCode());
 	setStatusMsg(_statusMap[getStatusCode()]);
 	setDate();
+
 	if (this->reqParser.t_result.close == true)
 		setConnection("close");
 	else
 		setConnection("keep-alive");
-	setContentType("text/html");
+
+	for (it = mimeMap.begin(); it != mimeMap.end(); ++it)
+	{
+		std::string srcTarget = this->reqParser.t_result.target;
+		std::string extension("");
+		size_t pos = srcTarget.find_last_of(".");
+		if (pos != std::string::npos)
+			extension = srcTarget.substr(pos);
+		if (it->first == extension)
+			setContentType(it->second);
+	}
+
 	setTransferEncoding("identity");
 	setContentLength(m_file.buffer.size());
 	setBody(m_file.buffer);
@@ -272,7 +296,7 @@ Client::startResponse()
 }
 
 void
-Client::starAutoindex()
+Client::startAutoindex()
 {
 	std::string body;
 
@@ -282,8 +306,8 @@ Client::starAutoindex()
 	DIR *dir;
 	if ((dir = opendir(path.c_str())))
 	{
-
-		body = "<html><head>    <title>Index of " + path + "</title></head><body bg color='white'> <hr>  <pre>";
+		std::string index = "Index of  " +  m_file.srcPath;
+		body = "<!DOCTYPE html><html><head>    <title> " + index + "</title></head><body bg color='white'><h1>" + index +" </h1><hr>  <pre>\n";
 		struct dirent *dirent = NULL;
 		while (true)
 		{
@@ -292,7 +316,9 @@ Client::starAutoindex()
 				break;
 			if (strcmp(dirent->d_name, ".") == SUCCESS || strcmp(dirent->d_name, "..") == SUCCESS)
 				continue;
-			body += "    <a href= " + path + "/" + dirent->d_name + ">" + dirent->d_name + "</a><br>";
+			// /Users/kyu/42project/webserv/www
+			std::cout << "ptr_server->m_ipAddress : "<< ptr_server->m_ipAddress <<"\n";
+			body += "    <a href=\"http://" + ptr_server->m_ipAddress + ":" + std::to_string(ptr_server->m_port) +m_file.srcPath  + dirent->d_name +"/" + "\">" + dirent->d_name +"</a><br>";
 		}
 		closedir(dir);
 		body += "</pre>  <hr></body></html>";
@@ -300,21 +326,25 @@ Client::starAutoindex()
 		setContentLength(body.length());
 		makeResult();
 	}
-	else 
+	else
 	{
 		switch (errno)
 		{
+			case ENOTDIR:
+				_statusCode = INDEX;
+				break ;
 			case EACCES:
 				_statusCode = 403;
+				break ;
 			case ENOENT:
 				_statusCode = 404;
+				break ;
 			default:
 				_statusCode = 500;
 		}
 	}
 
 }
-
 
 const char *
 Client::getSendResult() const
@@ -409,6 +439,12 @@ Client::isValidTarget(std::string &target)
 		std::cout << "cgi!! : " << path << "\n";
 		return (200);
 	}
+	if (target.compare(0, sizeof("/database/") - 1, "/database/") == SUCCESS)
+	{
+		m_file.srcPath = this->getCwdPath() + target;
+		std::cout << "download!! : " << path << "\n";
+		return (200);
+	}
 	else
 	{
 		std::map<std::string, Location>::iterator it = ptr_server->m_location.begin();
@@ -427,12 +463,18 @@ Client::isValidTarget(std::string &target)
 				}
 				else if (this->status != Res::Error && it->second.autoListing == true)
 				{
-					m_file.srcPath = path + "/";
+					m_file.srcPath = "/" + it->second.root + "/";
 					return (AUTO);
 				}
 				else
 					return (openDirectory(target));
-			}		
+			}
+		}
+		if (checkAutoListing())
+		{
+			path = getCwdPath() + reqParser.t_result.target;
+			m_file.srcPath = reqParser.t_result.target;
+			return (AUTO);
 		}
 	}
 	if (m_file.srcPath  != "")
@@ -442,6 +484,20 @@ Client::isValidTarget(std::string &target)
 		return (200);
 	}
 	return (404);
+}
+
+int
+Client::checkAutoListing()
+{
+	std::cout << "checkoutAutoListing target : " << reqParser.t_result.target << std::endl;
+	std::cout << reqParser.t_result.target.rfind("/") << std::endl;
+	std::cout <<reqParser.t_result.target.size()<< std::endl;
+	if (reqParser.t_result.target != "/" && (reqParser.t_result.target.rfind("/")) == reqParser.t_result.target.size() - 1)
+	{
+		std::cout << "checkoutAutoListing\n";
+		return 1;
+	}
+	return 0;
 }
 
 int
@@ -461,7 +517,7 @@ Client::openDirectory(std::string &target)
 	}
 	else if ((sub = target.rfind("/")) != std::string::npos)
 		target = target.substr(sub + 1);
-	
+
 	std::cout << "SROUCE target : " << target << std::endl;
 
 	DIR *dir;
@@ -485,7 +541,7 @@ Client::openDirectory(std::string &target)
 		closedir(dir);
 		return (404);
 	}
-	else 
+	else
 	{
 		switch (errno)
 		{
@@ -545,6 +601,7 @@ Client::clearFileEvent()
 	m_file.isFile = 0;
 	m_file.srcPath ="";
 	this->path = "";
+	this->autoIndexPath = "";
 }
 
 int
@@ -567,4 +624,86 @@ Client::writePipe(int fd)
         return Write::Complete;
     }
     return Write::Making;
+}
+
+void
+Client::startShowFile()
+{
+	std::string body;
+
+	body = "<!DOCTYPE html><html><body><img src=" + path;
+
+	body += " alt="" srcset=""></body></html>";
+	setBody(body);
+	setContentLength(body.length());
+	makeResult();
+}
+
+std::map<std::string, std::string>
+Client::initMimeMap()
+{
+	std::map<std::string, std::string> mimeTypes;
+
+	mimeTypes[".aac"] = "audio/aac";
+	mimeTypes[".abw"] = "application/x-abiword";
+	mimeTypes[".arc"] = "application/octet-stream";
+	mimeTypes[".avi"] = "video/x-msvideo";
+	mimeTypes[".azw"] = "application/vnd.amazon.ebook";
+	mimeTypes[".bin"] = "application/octet-stream";
+	mimeTypes[".bz"] = "application/x-bzip";
+	mimeTypes[".bz2"] = "application/x-bzip2";
+	mimeTypes[".csh"] = "application/x-csh";
+	mimeTypes[".css"] = "text/css";
+	mimeTypes[".csv"] = "text/csv";
+	mimeTypes[".doc"] = "application/msword";
+	mimeTypes[".epub"] = "application/epub+zip";
+	mimeTypes[".gif"] = "image/gif";
+	mimeTypes[".htm"] = "text/html";
+	mimeTypes[".html"] = "text/html";
+	mimeTypes[".ico"] = "image/x-icon";
+	mimeTypes[".ics"] = "text/calendar";
+	mimeTypes[".jar"] = "Temporary Redirect";
+	mimeTypes[".jpeg"] = "image/jpeg";
+	mimeTypes[".jpg"] = "image/jpeg";
+	mimeTypes[".js"] = "application/js";
+	mimeTypes[".json"] = "application/json";
+	mimeTypes[".mid"] = "audio/midi";
+	mimeTypes[".midi"] = "audio/midi";
+	mimeTypes[".mpeg"] = "video/mpeg";
+	mimeTypes[".mpkg"] = "application/vnd.apple.installer+xml";
+	mimeTypes[".odp"] = "application/vnd.oasis.opendocument.presentation";
+	mimeTypes[".ods"] = "application/vnd.oasis.opendocument.spreadsheet";
+	mimeTypes[".odt"] = "application/vnd.oasis.opendocument.text";
+	mimeTypes[".oga"] = "audio/ogg";
+	mimeTypes[".ogv"] = "video/ogg";
+	mimeTypes[".ogx"] = "application/ogg";
+	mimeTypes[".png"] = "image/png";
+	mimeTypes[".pdf"] = "application/pdf";
+	mimeTypes[".ppt"] = "application/vnd.ms-powerpoint";
+	mimeTypes[".rar"] = "application/x-rar-compressed";
+	mimeTypes[".rtf"] = "application/rtf";
+	mimeTypes[".sh"] = "application/x-sh";
+	mimeTypes[".svg"] = "image/svg+xml";
+	mimeTypes[".swf"] = "application/x-shockwave-flash";
+	mimeTypes[".tar"] = "application/x-tar";
+	mimeTypes[".tif"] = "image/tiff";
+	mimeTypes[".tiff"] = "image/tiff";
+	mimeTypes[".ttf"] = "application/x-font-ttf";
+	mimeTypes[".txt"] = "text/plain";
+	mimeTypes[".vsd"] = "application/vnd.visio";
+	mimeTypes[".wav"] = "audio/x-wav";
+	mimeTypes[".weba"] = "audio/webm";
+	mimeTypes[".webm"] = "video/webm";
+	mimeTypes[".webp"] = "image/webp";
+	mimeTypes[".woff"] = "application/x-font-woff";
+	mimeTypes[".xhtml"] = "application/xhtml+xml";
+	mimeTypes[".xls"] = "application/vnd.ms-excel";
+	mimeTypes[".xml"] = "application/xml";
+	mimeTypes[".xul"] = "application/vnd.mozilla.xul+xml";
+	mimeTypes[".zip"] = "application/zip";
+	mimeTypes[".3gp"] = "video/3gpp audio/3gpp";
+	mimeTypes[".3g2"] = "video/3gpp2 audio/3gpp2";
+	mimeTypes[".7z"] = "application/x-7z-compressed";
+
+	return mimeTypes;
 }

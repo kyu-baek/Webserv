@@ -8,7 +8,8 @@
 #define MAX_NUM_EVENTS 1024
 
 #define NONE -1
-#define AUTO -3
+#define AUTO -300
+#define INDEX -400
 #define TIMER 60
 
 enum {

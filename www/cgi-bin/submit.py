@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
-# Import modules for CGI handling 
+# Import modules for CGI handling
 import cgi, cgitb , sys, time
 
-# Create instance of FieldStorage 
-form = cgi.FieldStorage() 
+# Create instance of FieldStorage
+form = cgi.FieldStorage()
 # print("FORM", form)
 
 # Get data from fields
@@ -26,7 +26,7 @@ print ("body {font-family: 'Fredoka One';}")
 print ("</style>")
 print ("</head>")
 print ("<body>")
-print ("<h2>Test Form (POST) ✨ Result ✨</h2>")
+print ("<h2> POST Result </h2>")
 print ("<h3>Your First name is [%s] Last name is [%s]</h3>" %(first_name, last_name))
 print ("</body>")
 print ("</html>")

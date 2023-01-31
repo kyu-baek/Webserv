@@ -21,6 +21,7 @@ filename = content[3]
 # print(upload_path)
 target = upload_path + filename
 os.unlink(target)
+print("<div><a href='/home'>Go to home</a></div>")
 print(filename + " has been deleted")
 print("<h1>")
 print("</h1>")

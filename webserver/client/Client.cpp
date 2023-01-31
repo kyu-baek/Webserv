@@ -316,7 +316,7 @@ Client::startAutoindex()
 				break;
 			if (strcmp(dirent->d_name, ".") == SUCCESS || strcmp(dirent->d_name, "..") == SUCCESS)
 				continue;
-			// /Users/kyu/42project/webserv/www
+
 			std::cout << "ptr_server->m_ipAddress : "<< ptr_server->m_ipAddress <<"\n";
 			body += "    <a href=\"http://" + ptr_server->m_ipAddress + ":" + std::to_string(ptr_server->m_port) +m_file.srcPath  + dirent->d_name +"/" + "\">" + dirent->d_name +"</a><br>";
 		}

@@ -12,11 +12,11 @@ Client::openResponse()
 		std::cerr << "	ERROR : INVALID TARGET\n";
 		return ;
 	}
-	
+
 	std::cout << "statusRes :" << this->_statusCode << "\n";
 	if (this->reqParser.t_result.method == GET)
 	{
-		if (_statusCode == AUTO) //autoindex 
+		if (_statusCode == AUTO) //autoindex
 		{
 			std::cout << "  autoindext \n";
 			this->_statusCode = 200;
@@ -43,7 +43,7 @@ Client::openResponse()
 		/*
 			file open logic!
 		*/
-		char **env = init_env();
+		char **env = initEnv();
 		if (pipe(m_file.inFds) == -1)
 			std::cerr <<"ERROR: pipe\n";
 		if (pipe(m_file.outFds) == -1)
@@ -52,7 +52,7 @@ Client::openResponse()
 			close(m_file.inFds[1]);
 			std::cerr <<"ERROR: pipe\n";
 		}
-	
+
 		m_file.pid = fork();
 		if (m_file.pid == -1)
 		{
@@ -70,13 +70,13 @@ Client::openResponse()
 			close(m_file.inFds[1]);
 			dup2(m_file.inFds[0], STDIN_FILENO);
 			close(m_file.inFds[0]);
-			
+
 			close(m_file.outFds[0]);
 			dup2(m_file.outFds[1], STDOUT_FILENO);
 			close(m_file.outFds[1]);
 
 			char **arg = new char *[sizeof(char *) * 3];
-	
+
 			std::string str = getExecvePath();
 
 			arg[0] = strdup(str.c_str()); //예시 "/usr/bin/python3"
@@ -111,10 +111,10 @@ Client::openResponse()
 }
 
 char **
-Client::init_env(void)
+Client::initEnv(void)
 {
 	std::map<std::string, std::string> env_map;
-	
+
 	env_map["AUTH_TYPE"] = ""; // 인증과정 없으므로 NULL
 	env_map["CONTENT_LENGTH"] = reqParser.t_result.header.at("Content-Length");
 	env_map["CONTENT_TYPE"] = reqParser.t_result.header.at("Content-Type");
@@ -179,7 +179,7 @@ Client::openfile(std::string targetPath)
 	}
 }
 
-void 
+void
 Client::openErrorResponse(int errorCode)
 {
 	this->status = Res::Error;
@@ -358,7 +358,7 @@ Client::isValidTarget(std::string &target)
 				}
 				else
 					return (openDirectory(target));
-			}		
+			}
 		}
 	}
 	if (m_file.srcPath  != "")
@@ -387,7 +387,7 @@ Client::openDirectory(std::string &target)
 	}
 	else if ((sub = target.rfind("/")) != std::string::npos)
 		target = target.substr(sub + 1);
-	
+
 	std::cout << "SROUCE target : " << target << std::endl;
 
 	DIR *dir;
@@ -411,7 +411,7 @@ Client::openDirectory(std::string &target)
 		closedir(dir);
 		return (404);
 	}
-	else 
+	else
 	{
 		switch (errno)
 		{

@@ -7,7 +7,6 @@
 #include "../server/Server.hpp"
 #include "ResponseInfo.hpp"
 #include "request/Request.hpp"
-#include "CGI.hpp"
 #include "File.hpp"
 
 class Client : public ResponseInfo
@@ -29,7 +28,6 @@ class Client : public ResponseInfo
 
 	public:
 		FileEvent m_file;
-		CGI m_cgi;
 
 	public:
 		void openResponse();
@@ -45,7 +43,7 @@ class Client : public ResponseInfo
 		size_t getSendResultSize() const;
 		const char * getSendResult() const;
 		void clearResponseByte();
-		char **init_env(void);
+		char **initEnv(void);
 		std::string cgiFinder(std::string target);
 		int isValidTarget(std::string &target);
 		int openDirectory(std::string &target);

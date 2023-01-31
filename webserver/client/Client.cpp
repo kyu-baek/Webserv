@@ -318,7 +318,7 @@ Client::startAutoindex()
 				continue;
 
 			std::cout << "ptr_server->m_ipAddress : "<< ptr_server->m_ipAddress <<"\n";
-			body += "    <a href=\"http://" + ptr_server->m_ipAddress + ":" + std::to_string(ptr_server->m_port) +m_file.srcPath  + dirent->d_name +"/" + "\">" + dirent->d_name +"</a><br>";
+			body += "    <a href= " + m_file.srcPath  + dirent->d_name +"/" + ">" + dirent->d_name +"</a><br>";
 		}
 		closedir(dir);
 		body += "</pre>  <hr></body></html>";

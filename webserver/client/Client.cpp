@@ -350,6 +350,12 @@ Client::isValidTarget(std::string &target)
 		std::cout << "cgi!! : " << path << "\n";
 		return (200);
 	}
+	if (target.compare(0, sizeof("/database/") - 1, "/database/") == SUCCESS)
+	{
+		m_file.srcPath = this->getCwdPath() + target;
+		std::cout << "download!! : " << path << "\n";
+		return (200);
+	}
 	else
 	{
 		std::map<std::string, Location>::iterator it = ptr_server->m_location.begin();

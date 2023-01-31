@@ -29,13 +29,18 @@ Client::openResponse()
 			else if (_statusCode == INDEX)
 			{
 				this->_statusCode = 200;
-				std::cout << "download!\n";
-				std::cout << "ppp = " << path << std::endl;
 				path = path.substr(0, path.length() - 1);
-				std::cout << "new path : " << path << std::endl;
 				startShowFile();
 			}
 			return ;
+		}
+		else if (_statusCode == REDIRECTION)
+		{
+			this->_statusCode = 200;
+			std::cout << "redirection\n\n\n";
+			//startRedirection();
+
+
 		}
 
 		int fd = -1;

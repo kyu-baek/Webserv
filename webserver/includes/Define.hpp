@@ -10,6 +10,7 @@
 #define NONE -1
 #define AUTO -300
 #define INDEX -400
+#define REDIRECTION -500
 #define TIMER 60
 
 enum {

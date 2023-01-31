@@ -285,7 +285,6 @@ Connection::clientReadEvent()
 		{
 			// std::cout << "\n\n\nprintRequest\n";
 			// m_clientMap[currEvent->ident].reqParser.printRequest();
-			std::cout << "\n\n\n";
 			if (m_clientMap[currEvent->ident].status == Res::None)
 			{
 				m_clientMap[currEvent->ident].openResponse();
@@ -293,10 +292,8 @@ Connection::clientReadEvent()
 				{
 					if (m_clientMap[currEvent->ident].m_file.fd != -1)
 						readyToResponse();
-					else // kq 에 등록할 file event 가 없는 경우 -> autoindex listing
-					{
+					else // kq 에 등록할 file event 가 없는 경우 -> autoindex listing or redirecton
 						enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-					}
 				}
 				else
 				{

@@ -12,7 +12,7 @@ Connection::eventLoop()
 		for (int i = 0; i < eventNum; i++)
 		{
 			currEvent = &getEventList()[i];
-			if (currEvent->flags & EV_EOF)
+			if (currEvent->flags & EV_EOF || currEvent->fflags & EV_EOF)
 				handleEofEvent();
 			else if (currEvent->flags & EV_ERROR)
 				handleErrorEvent();
@@ -29,15 +29,12 @@ Connection::eventLoop()
 void
 Connection::handleEofEvent()
 {
-	std::cout << "	HandleEofEvent : " << currEvent->ident << std::endl;
-	if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
-	{
-		if (m_clientMap[currEvent->ident].status == -1)
-		{
-			std::cout << "aaaaaa \n" << std::endl;
-			deleteClient(currEvent->ident);
-		}
-	}
+	std::cout << "	HandleEofEvent : " << currEvent->ident << "  errno is :"<< errno <<std::endl;
+
+	if (currEvent->filter == EVFILT_PROC)
+		return ;
+	std::cout << "	EVFILT_PROC : " << currEvent->ident << "  errno is :"<< errno <<std::endl;
+	handleErrorEvent();
 
 }
 
@@ -59,11 +56,11 @@ Connection::deleteClient(int socket)
 	if (m_clientMap.find(socket) == m_clientMap.end())
 		return ;
 	std::map <int, Client*>::iterator it;
-	std::cout << "111m_fileMap size : " << m_fileMap.size() << std::endl;
 	for (it = m_fileMap.begin(); it != m_fileMap.end(); it++)
 	{
 		if (it->second->m_clientFd == (int)socket)
 		{
+			close (it->first);
 			m_fileMap.erase(it->first);
 			continue;
 		}
@@ -179,32 +176,28 @@ Connection::handleWriteEvent()
 void
 Connection::handleErrorEvent()
 {
-
-	std::cout << "handleErrorEvent : " << currEvent->ident << std::endl;
+	std::cout << "handleErrorEvent : " << currEvent->ident <<  "errno is : " << errno << std::endl;
+	shutdown(currEvent->ident, SHUT_RDWR);
 	if (m_serverMap.find(currEvent->ident) != m_serverMap.end())
 	{
 		std::cout << "1111111\n";
 		if (m_clientMap.empty() == true)
 			return ;
+		std::vector<int>::iterator it = m_serverMap[currEvent->ident].m_clientVec.begin();
+		for (; it != m_serverMap[currEvent->ident].m_clientVec.end(); it++ )
+			deleteClient(*it);
 		this->m_serverMap.erase(this->m_serverMap.find(currEvent->ident));
 		close(currEvent->ident);
 	}
 	else if (this->m_clientMap.find(currEvent->ident) != this->m_clientMap.end())
-	{
-		std::cout << "2222\n";
-		//m_fileMap.find()
-		this->m_clientMap.erase(this->m_clientMap.find(currEvent->ident));
-		close(currEvent->ident);
-		//map 도 지우기
-	}
+		deleteClient(currEvent->ident);
+
 	if (this->m_fileMap.find(currEvent->ident) != this->m_fileMap.end())
 	{
 		std::cout << "3333\n";
 		this->m_fileMap.erase(this->m_fileMap.find(currEvent->ident));
 		close(currEvent->ident);
 	}
-	// this->m_fileMap.erase(this->m_fileMap.find(currEvent->ident));
-	// close(currEvent->ident);
 }
 
 void

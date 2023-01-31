@@ -19,8 +19,8 @@ while ( <$upload_filehandle> )
 
 close UPLOADFILE;
 
-print "Status: 200 OK\r\n";
-print $query->header ( );
+# print "Status: 200 OK\r\n";
+# print $query->header ( );
 
 print <<END_HTML;
 <HTML>
@@ -28,6 +28,7 @@ print <<END_HTML;
 <TITLE>Thanks!</TITLE>
 </HEAD>
 <BODY>
+<div><a href="/home">Go to home</a></div>
 <P>Thanks for uploading your file!</P>
 <P>Your file: $upload_dir/$filename</P>
 </BODY>

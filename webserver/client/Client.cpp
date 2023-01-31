@@ -36,11 +36,10 @@ Client::openResponse()
 		}
 		else if (_statusCode == REDIRECTION)
 		{
-			this->_statusCode = 200;
+			this->_statusCode = 301;
 			std::cout << "redirection\n\n\n";
-			//startRedirection();
-
-
+			startRedirection();
+			return ;
 		}
 
 		int fd = -1;
@@ -348,6 +347,13 @@ Client::startAutoindex()
 				_statusCode = 500;
 		}
 	}
+}
+
+void
+Client::startRedirection()
+{
+	setStatusMsg(m_file.srcPath);
+	setBody("");
 
 }
 
@@ -460,11 +466,16 @@ Client::isValidTarget(std::string &target)
 				path = this->getCwdPath() + "/"+ it->second.root;
 				std::cout << "!!path : " << path << std::endl;
 				std::cout << "t->second.index.size() :" << it->second.index.size()  << "\n";
+				if (it->second.returnType == 301 && it->second.returnRoot != "")
+				{
+					m_file.srcPath = it->second.returnRoot;
+					return (200);
+				}
 				if (it->second.index.size() > 0 )
 				{
 					m_file.srcPath = path + "/" +  it->second.index[0];
 					std::cout << "!!target : " << target << std::endl;
-					return (200);
+					return (REDIRECTION);
 				}
 				else if (this->status != Res::Error && it->second.autoListing == true)
 				{

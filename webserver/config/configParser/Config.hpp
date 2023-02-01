@@ -3,7 +3,6 @@
 
 #include "Config_struct.hpp"
 #include "BaseServer.hpp"
-// using namespace std;
 
 
 /*	Request class
@@ -29,8 +28,6 @@ class Config : public Config_base
 {
 public:
 	Config();
-	// Config(Config const &src);
-	// Config &operator=(Config const &srcs) {};
 	~Config();
 	Config(const std::string path);
 
@@ -44,6 +41,7 @@ private:
 	void configInit(const std::string path);
 	void configParse();
 	void serverInit(int, int);
+	void checkVaildServers();
 	// void printV(std::vector <std::string> const &a);
 	
 

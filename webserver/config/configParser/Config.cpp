@@ -24,24 +24,25 @@ Config::Config()
 Config::~Config()
 {}
 
-// Config::Config(Config const &src)
-// {}
-
 Config::Config(const std::string _path) : Config_base() {
 
 	try {
 		Config::configInit(_path);
 		Config::configParse();
+		Config::checkVaildServers();
 	}
 	catch (Config::FileNotFoundException &e) {
 		std::cerr <<  "Error: couldn't open default config file" << std::endl;
+		exit (1);
 	}
-	return ;
+	catch (std::exception& e) {
+		std::cerr << e.what() << std::endl;
+		exit(1);
+	}
 }
 
 void
 Config::configInit(const std::string _path) {
-
 
 	std::string buffer;
 
@@ -57,7 +58,6 @@ Config::configInit(const std::string _path) {
 			file.push_back(buffer);
 	}
 	ifs.close();
-	// printV(file);
 }
 
 void
@@ -84,16 +84,12 @@ Config::configParse()
 				i++;
 				j++;
 			}
-			if ((flag % 2) == 1) {
-				std::cerr << "Error: Server block { } syntax error" << std::endl;
-				exit (1);
-			}
+			if ((flag % 2) == 1)
+				throw (std::runtime_error("Error: Server block { } syntax error"));
 			serverInit(i - j, j);
 		}
-		else {
-				std::cerr << "Error: Server block syntax error" << std::endl;
-				exit (1);
-		}
+		else
+			throw (std::runtime_error("Error: Server block syntax error"));
 	}
 	// print_config();
 }
@@ -116,17 +112,11 @@ Config::serverInit(int start, int end)
 				tmpServer.setBServer("h", file[start].substr(sub, p - sub));
 				std::string port = file[start].substr(p + 1);
 				if (!tmpServer.str_is_digit(port))
-				{
-					std::cerr << "Error: listen port is not digit error" << std::endl;
-					exit (1);
-				}
+					throw (std::runtime_error("Error: listen port is not digit error"));
 				tmpServer.setBServer("p", file[start].substr(p + 1));
 			}
 			else
-			{
-				std::cerr << "Error: listen block syntax error" << std::endl;
-				exit (1);
-			}
+				throw (std::runtime_error("Error: listen block syntax error"));
 		}	
 		else if (file[start].find("server_name ") != std::string::npos)
 		{
@@ -149,10 +139,7 @@ Config::serverInit(int start, int end)
 			while (getline(ss, temp, ' '))
 			{
 				if (!tmpServer.str_is_digit(temp))
-				{
-					std::cerr << "Error: listen block : port is not digit error" << std::endl;
-					exit (1);
-				}
+					throw (std::runtime_error("Error: listen block : port is not digit error"));
 				int i;
 				std::stringstream ssInt(temp);
 				ssInt >> i;
@@ -168,16 +155,10 @@ Config::serverInit(int start, int end)
 			std::string tmp;
 			
 			if ((q = file[start].find(" {")) == std::string::npos)
-			{
-				std::cerr << "Error: Location block { } syntax error" << std::endl;
-				exit (1);
-			}
+				throw (std::runtime_error("Error: Location block { } syntax error"));
 			str = file[start].substr(sub, q - sub);
 			if(str.empty())
-			{
-				std::cerr << "Error: Location block / syntax error" << std::endl;
-				exit (1);
-			}
+				throw (std::runtime_error("Error: Location block / syntax error"));
 
 			Location location;
 			location.root = "";
@@ -217,10 +198,7 @@ Config::serverInit(int start, int end)
 					{
 						std::string maxB = file[start].substr(sub + 1);
 						if (!tmpServer.str_is_digit(maxB))
-						{
-							std::cerr << "Error: max_body block : max_body is not digit error" << std::endl;
-							exit (1);
-						}
+							throw (std::runtime_error("Error: max_body block : max_body is not digit error"));
 						int i;
 						std::stringstream ssInt(maxB);
 						ssInt >> i;
@@ -241,27 +219,20 @@ Config::serverInit(int start, int end)
 							ss = ss.substr(0, tmp);
 						}
 						if (!tmpServer.str_is_digit(ss))
-						{
-							std::cerr << "Error: Location redirect block : returnType is not digit error" << std::endl;
-							exit (1);
-						}
+							throw (std::runtime_error("Error: Location redirect block : returnType is not digit error"));
 						int i;
 						std::stringstream ssInt(ss);
 						ssInt >> i;
 						location.returnType = i;
 					}
 					else
-					{
-						std::cerr << "Error: Location block has wrong syntax error" << std::endl;
-						exit (1);
-					}
+						throw (std::runtime_error("Error: Location block has wrong syntax error"));
 				}
 				else
-				{
-					std::cerr << "Error: Location block key value syntax error" << std::endl;
-					exit (1);
-				}
+					throw (std::runtime_error("Error: Location block key value syntax error"));
 			}
+			if (location.root == "")
+				throw (std::runtime_error("Error: Location block root syntax error"));
 			tmpServer.setBlcation(str, location);
 		}
 		else if (file[start].find("cgi ") != std::string::npos)
@@ -272,16 +243,10 @@ Config::serverInit(int start, int end)
 			std::string tmp;
 			
 			if ((q = file[start].find(" {")) == std::string::npos)
-			{
-				std::cerr << "Error: Location block { } syntax error" << std::endl;
-				exit (1);
-			}
+				throw (std::runtime_error("Error: Location block { } syntax error"));
 			str = file[start].substr(sub, q - sub);
 			if(str.empty())
-			{
-				std::cerr << "Error: Location block / syntax error" << std::endl;
-				exit (1);
-			}
+				throw (std::runtime_error("Error: Location block / syntax error"));
 			
 			CgiConfig cgi;
 			while (file[++start] != "}")
@@ -305,33 +270,54 @@ Config::serverInit(int start, int end)
 						cgi.execPath = file[start].substr(sub + 1);
 				}
 				else
-				{
-					std::cerr << "Error: Cgi Location block key value syntax error" << std::endl;
-					exit (1);
-				}
+					throw (std::runtime_error("Error: Cgi Location block key value syntax error"));
 			}
 			if (cgi.root == "" || cgi.execPath == "")
-			{
-				std::cerr << "Error: Cgi Location block path syntax error" << std::endl;
-				exit (1);
-			}
+				throw (std::runtime_error("Error: Cgi Location block path syntax error"));
 			tmpServer.setBCgi(str, cgi);
 		}
 		else if (file[start] != "server {" && file[start] != "}")
 		{
 			std::cout <<  "wrong ["<<file[start] << "]" << std::endl;
-			std::cerr << "Error: Config block syntax key error" << std::endl;
-			exit (1);
+			throw (std::runtime_error("Error: Config block syntax key error"));
 		}
 	}
 	base.push_back(tmpServer);
 	numOfServer += 1;
-	/* checkfillup();
-		1. post is digit -> done
-		2. check there are all pare
-		3. check there is at least one location block every server
-		4. { } 확인 -> done
-	*/
+}
+
+/*
+
+	1. listen, server_name 중복 체크
+	2. server 2개 이상인지 체크
+	3. server 가 제한된 개수 이상인지 체크
+	4. 각 서버에 하나 이상의 location , default error page 체크
+
+*/
+void
+Config::checkVaildServers()
+{
+	if (numOfServer < 2 || numOfServer > 1000)
+		throw (std::runtime_error("Error: Worng number of Server"));
+
+	for ( unsigned int i = 0 ; i < base.size() ; ++i )
+	{
+		std::string preName = base[i].getBServer().serverName;
+		int prePort = base[i].getBServer().port;
+		unsigned int j = i + 1;
+		for (  ; j < base.size() ; ++j )
+		{
+			if (preName == base[j].getBServer().serverName)	
+				throw (std::runtime_error("Error: Duplicate name of Server"));
+			if (prePort == base[j].getBServer().port)
+				throw (std::runtime_error("Error: Duplicate port of Server"));
+		}
+
+		if (base[i].getBLocation().size() < 1)
+			throw (std::runtime_error("Error: Config need at least one  Location Block"));
+		if (base[i].getBServer().errorPages.size() == 0)
+			throw (std::runtime_error("Error: Config need at least one default error page"));
+	}
 }
 
 // void

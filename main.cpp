@@ -11,13 +11,7 @@ int main(int argc, char** argv)
 			std::cerr << "Error: Config" << std::endl;
 			return (1);
 		}
-		try {
-			config = Config(path);
-		}
-		catch (std::exception& e) {
-			std::cerr << "Error: Config" << std::endl;
-			return (1);
-		}
+		config = Config(path);
 	}
 
 	WebServer webServer(config);

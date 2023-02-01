@@ -36,8 +36,7 @@ Client::openResponse()
 		}
 		else if (_statusCode == REDIRECTION)
 		{
-			this->_statusCode = 301;
-			std::cout << "redirection\n\n\n";
+			this->_statusCode = 302;
 			startRedirection();
 			return ;
 		}
@@ -352,9 +351,13 @@ Client::startAutoindex()
 void
 Client::startRedirection()
 {
-	setStatusMsg(m_file.srcPath);
-	setBody("");
-
+	setStatusMsg(_statusMap[getStatusCode()]);
+	m_resMsg += getHttpVersion() + " " + std::to_string(getStatusCode())  + " " + getStatusMsg() + CRLF;
+	m_resMsg += "Location : " + m_file.srcPath + "\r\n";
+	m_resMsg += "Content-type : text/html;charset=UTF-8\r\n";
+	m_resMsg += "Content-Length : 0\r\n";
+	m_resMsg += "Date : " + getDate() + CRLF;
+	m_totalBytes = m_resMsg.size();
 }
 
 const char *
@@ -469,13 +472,13 @@ Client::isValidTarget(std::string &target)
 				if (it->second.returnType == 301 && it->second.returnRoot != "")
 				{
 					m_file.srcPath = it->second.returnRoot;
-					return (200);
+					return (REDIRECTION);
 				}
 				if (it->second.index.size() > 0 )
 				{
 					m_file.srcPath = path + "/" +  it->second.index[0];
 					std::cout << "!!target : " << target << std::endl;
-					return (REDIRECTION);
+					return (200);
 				}
 				else if (this->status != Res::Error && it->second.autoListing == true)
 				{

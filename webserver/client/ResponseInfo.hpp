@@ -16,6 +16,16 @@
 - <html> </html>
 =======================================================*/
 
+
+/*
+
+HTTP/1.1 302
+Location: http://www.test.com/page2
+Content-Type: text/html;charset=UTF-8
+Content-Length: 0
+Date: Tue, 13 Feb 2018 10:33:15 GMT
+*/
+
 class ResponseInfo
 {
 	protected:

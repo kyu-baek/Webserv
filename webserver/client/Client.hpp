@@ -37,6 +37,7 @@ class Client : public ResponseInfo
 		void makeResult();
 		void initResponse();
 		void startResponse();
+		void startRedirection();
 		void startAutoindex();
 		void startShowFile();
 		void openfile(std::string targetPath);

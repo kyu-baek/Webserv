@@ -7,14 +7,15 @@ import sqlite3
 upload_path = str(os.environ.get("UPLOAD_PATH"))
 
 def register_user(username, email, password, id):
+	islogin = "false"
 	conn = sqlite3.connect(upload_path + "/users.db")
 	c = conn.cursor()
-	c.execute("CREATE TABLE IF NOT EXISTS users (username TEXT, email TEXT, password TEXT, id TEXT)")
+	c.execute("CREATE TABLE IF NOT EXISTS users (username TEXT, email TEXT, password TEXT, id TEXT, islogin TEXT)")
 	c.execute("SELECT * FROM users WHERE username=? OR email=?", (username, email))
 	if c.fetchone():
 		print("Error: The username or email already exists.")
 	else:
-		c.execute("INSERT INTO users (username, email, password, id) VALUES (?,?,?,?)", (username, email, password, id))
+		c.execute("INSERT INTO users (username, email, password, id, islogin) VALUES (?,?,?,?,?)", (username, email, password, id, islogin))
 		conn.commit()
 		print("Registration successful!")
 	conn.close()

@@ -25,7 +25,8 @@ password = form.getvalue("password")
 print("<html>")
 print("<body>")
 print("<h1>Login Results</h1>")
-
+cookie = str(os.environ.get("HTTP_COOKIE"))
+print(cookie)
 if username and password:
 	# Validate the username and password here.
 	result = validate(username, password)

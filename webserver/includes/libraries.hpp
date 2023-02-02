@@ -25,5 +25,8 @@
 #include <exception>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <random>
+#include <ctime>
+#include <string>
 
 #endif

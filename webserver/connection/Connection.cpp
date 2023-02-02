@@ -30,26 +30,23 @@ Connection::handleEofEvent()
 	std::cout << "	HandleEofEvent : " << currEvent->ident << "  errno is :"<< errno <<std::endl;
 	if (currEvent->filter == EVFILT_PROC)
 		return ;
-	std::cout << "	EVFILT_PROC : " << currEvent->ident << "  errno is :"<< errno <<std::endl;
 	handleErrorEvent();
-
 }
 
 void
 Connection::handleTimeOut()
 {
-	std::cout << "\n\n EVFILT_TIMER : " << currEvent->ident << "\n";
 	if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
 	{
+		std::cerr << RED << "Time Out ";  
 		deleteClient(currEvent->ident);
 	}
-	std::cout << "\n\n--------------TIMER EVENT DONE--------------n";
 }
 
 void
 Connection::handleErrorEvent()
 {
-	std::cout << "handleErrorEvent : " << currEvent->ident <<  "errno is : " << errno << std::endl;
+	std::cout << "handleErrorEvent : " << currEvent->ident <<  " errno is : " << errno << std::endl;
 	shutdown(currEvent->ident, SHUT_RDWR);
 	if (m_serverMap.find(currEvent->ident) != m_serverMap.end())
 	{
@@ -105,6 +102,7 @@ Connection::deleteClient(int socket)
 	m_clientMap.erase(socket);
 	enrollEventToChangeList(socket, EVFILT_TIMER, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 	close(socket);
+	std::cerr << RED << "closed : " << socket << RESET << std::endl;
 }
 
 /* read event */
@@ -237,13 +235,16 @@ Connection::initClient(int clientSocket)
 void
 Connection::acceptClient()
 {
-		std::cout << "SERVER : " << currEvent->ident << "	=>";
+		std::cerr << YELLOW << "SERVER : " << currEvent->ident << "	=> ";
 		int clientSocket = accept(currEvent->ident,
 									(sockaddr *)&m_serverMap[currEvent->ident].m_serverAddr,
 									&m_serverMap[currEvent->ident].m_serverAddrLen);
 		if (clientSocket == FAIL)
+		{
 			std::cerr << "  ERROR : accept() in Server Event Case\n";
-		std::cout << "	ACCEPT : " << clientSocket << std::endl;
+			return;
+		}
+		std::cerr << "ACCEPT : " << clientSocket << RESET << std::endl;
 		setNonBlock(clientSocket);
 		enrollEventToChangeList(clientSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 		enrollEventToChangeList(clientSocket, EVFILT_TIMER, EV_ADD | EV_ONESHOT, NOTE_SECONDS, TIMER, NULL);
@@ -259,7 +260,7 @@ Connection::clientReadEvent()
 	int valRead = recv(currEvent->ident, reqBuffer.data(), reqBuffer.size(), 0);
 	std::stringstream ss;
 	ss << std::string(reqBuffer.begin(), reqBuffer.begin() + valRead);
-	std::cout << "valRead :" << valRead << std::endl;
+	//std::cout << "valRead :" << valRead << std::endl;
 	
 	if (valRead == FAIL)
 	{
@@ -280,12 +281,13 @@ Connection::clientReadEvent()
 	}
 	else if (valRead > 0)
 	{
-		std::cout << "\n\n\nRequest \n" << ss.str() << "\n\n";
+		//std::cout << "\n\n\nRequest \n" << ss.str() << "\n\n";
 		m_clientMap[currEvent->ident].reqParser.makeRequest(ss.str());
 		m_clientMap[currEvent->ident].status = Res::None;
 
 		if (m_clientMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 		{
+			std::cerr <<GREEN << "client : " << currEvent->ident << "  => REQUEST : " << getMethodToStr(m_clientMap[currEvent->ident].reqParser.t_result.method )<< RESET<< std::endl;
 			enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 
 			// m_clientMap[currEvent->ident].reqParser.printRequest();
@@ -301,7 +303,7 @@ Connection::clientReadEvent()
 				}
 				else
 				{
-					std::cout << "	cgi true" << std::endl;
+					// std::cout << "	cgi true" << std::endl;
 					int pipeWrite = m_clientMap[currEvent->ident].m_file.inFds[1];
 					int pipeRead = m_clientMap[currEvent->ident].m_file.outFds[0];
 
@@ -326,11 +328,23 @@ Connection::clientReadEvent()
 	}
 }
 
+std::string
+Connection::getMethodToStr(int num)
+{
+	if (num == 0)
+		return ("GET");
+	if (num == 1)
+		return ("POST");
+	if (num == 2)
+		return ("DELETE");
+	return("UNKOWN");
+}
+
 void
 Connection::readyToResponse()
 {
 	int fileFd = m_clientMap[currEvent->ident].m_file.fd;
-	std::cout << "m_file.fd : " << fileFd << std::endl;
+
 	enrollEventToChangeList(fileFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	fcntl(fileFd, F_SETFL, O_NONBLOCK);
 	m_fileMap.insert(std::make_pair(fileFd, &m_clientMap[currEvent->ident]));
@@ -340,7 +354,6 @@ void
 Connection::fileReadRvent()
 {
 	std::cout << "FILE READ : " << currEvent->ident << std::endl;
-	std::cout << "m_fileMap[currEvent->ident]->status : " <<m_fileMap[currEvent->ident]->status <<"\n\n";
 	if (m_fileMap[currEvent->ident]->status == Res::Making)
 	{
 		int res = m_fileMap[currEvent->ident]->readFile(currEvent->ident);
@@ -358,12 +371,11 @@ Connection::fileReadRvent()
 			// std::cout << "fMaking = " << std::endl;
 			break;
 		case File::Complete:
-			std::cout << "Complete" << std::endl;
+			// std::cout << "Complete" << std::endl;
 			//enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 			m_fileMap[currEvent->ident]->status = Res::Complete;
 			if (m_fileMap[currEvent->ident]->isCgi == false)
 			{
-				std::cout << "start\n\n";
 				m_fileMap[currEvent->ident]->startResponse();
 				enrollEventToChangeList(m_fileMap[currEvent->ident]->m_clientFd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 				close(currEvent->ident);

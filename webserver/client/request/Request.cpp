@@ -33,14 +33,9 @@ void	Request::makeRequest(std::string message)
 	t_result.orig += message;
 	_buf += message;
 	if (t_result.pStatus == ParseNone)
-	{
-		std::cout  << "aaa\n";
 		parseRequestLine();
-	}
-	if (t_result.pStatus == ParseHeader){
-		std::cout  << "bbb\n";
+	if (t_result.pStatus == ParseHeader)
 		parseHeader();
-	}
 	if (t_result.pStatus == ParseBody)
 		parseBody();
 }
@@ -466,7 +461,6 @@ void	Request::errorStatus(std::string message, int status, int pStatus)
 Request::Request(): _bodyLength(0), _chunked(false) {
 	t_result.pStatus = ParseNone;
 	t_result.status = 200;
-	std::cout << "request constructor\n\n";
 }
 
 Request::~Request() {}

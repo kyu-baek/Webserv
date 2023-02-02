@@ -13,7 +13,7 @@ Client::openResponse()
 		return ;
 	}
 
-	std::cout << "statusRes :" << this->_statusCode << "\n";
+	// std::cout << "statusRes :" << this->_statusCode << "\n";
 	if (this->reqParser.t_result.method == GET)
 	{
 		if (_statusCode == AUTO) //autoindex
@@ -56,7 +56,6 @@ Client::openResponse()
 
 	if (this->reqParser.t_result.method == POST || this->reqParser.t_result.method == DELETE)
 	{
-		std::cout << "m_file.srcPath  : " <<m_file.srcPath  << std::endl;
 		/*
 			file open logic!
 		*/
@@ -110,10 +109,9 @@ Client::openResponse()
 		}
 		else
 		{
-			std::cout << "	This is Parent of POST : \n";
-			std::cout << "222\n";
-			std::cout << "inFds[0] : " << m_file.inFds[0] << " inFds[1] : " << m_file.inFds[1] <<std::endl;
-			std::cout << "outFds[0] : " << m_file.outFds[0] << " outFds[1] : " << m_file.outFds[1] <<std::endl;
+			// std::cout << "	This is Parent of POST \n";
+			// std::cout << "inFds[0] : " << m_file.inFds[0] << " inFds[1] : " << m_file.inFds[1] <<std::endl;
+			// std::cout << "outFds[0] : " << m_file.outFds[0] << " outFds[1] : " << m_file.outFds[1] <<std::endl;
 
 			close(m_file.inFds[0]);
 			close(m_file.outFds[1]);
@@ -180,7 +178,6 @@ void
 Client::openfile(std::string targetPath)
 {
 	std::string tmpPath = path  + targetPath;
-	std::cout << "tmpPath : " << tmpPath << std::endl;
 	int fd;
 	struct stat ss;
 	if (stat(tmpPath.c_str(), &ss) == -1 || S_ISREG(ss.st_mode) != true ||
@@ -192,10 +189,10 @@ Client::openfile(std::string targetPath)
 	}
 	else
 	{
-		std::cout <<"file size = "<< ss.st_size << std::endl;
-		std::cout << "fd = "<< fd<<std::endl;
+		// std::cout <<"file size = "<< ss.st_size << std::endl;
+		// std::cout << "fd = "<< fd<<std::endl;
 		m_file.fd = fd;
-		std::cout << "_statusCode : " << getStatusCode() << std::endl;
+		//std::cout << "_statusCode : " << getStatusCode() << std::endl;
 		this->status = Res::Making;
 	}
 }
@@ -440,7 +437,7 @@ Client::cgiFinder(std::string target)
 int
 Client::isValidTarget(std::string &target)
 {
-	std::cout << "target : " <<target << std::endl;
+	// std::cout << "target : " <<target << std::endl;
 	if (target == "/home")
 		target = "/";
 	if (target == "/favicon.ico")
@@ -450,7 +447,7 @@ Client::isValidTarget(std::string &target)
 	if ((cgiPath =  cgiFinder(target)) != "")
 	{
 		m_file.srcPath = this->getCwdPath() + "/" + cgiPath + target;
-		std::cout << "cgi!! : " << path << "\n";
+		// std::cout << "cgi!! : " << path << "\n";
 		return (200);
 	}
 	if (target.compare(0, sizeof("/database/") - 1, "/database/") == SUCCESS)
@@ -467,8 +464,8 @@ Client::isValidTarget(std::string &target)
 			if (it->first == target)
 			{
 				path = this->getCwdPath() + "/"+ it->second.root;
-				std::cout << "!!path : " << path << std::endl;
-				std::cout << "t->second.index.size() :" << it->second.index.size()  << "\n";
+				// std::cout << "!!path : " << path << std::endl;
+				// std::cout << "t->second.index.size() :" << it->second.index.size()  << "\n";
 				if (it->second.returnType == 301 && it->second.returnRoot != "")
 				{
 					m_file.srcPath = it->second.returnRoot;
@@ -477,7 +474,7 @@ Client::isValidTarget(std::string &target)
 				if (it->second.index.size() > 0 )
 				{
 					m_file.srcPath = path + "/" +  it->second.index[0];
-					std::cout << "!!target : " << target << std::endl;
+					// std::cout << "!!target : " << target << std::endl;
 					return (200);
 				}
 				else if (this->status != Res::Error && it->second.autoListing == true)
@@ -498,7 +495,7 @@ Client::isValidTarget(std::string &target)
 	}
 	if (m_file.srcPath  != "")
 	{
-		std::cout << "path nothing \n";
+		// std::cout << "path nothing \n";
 		m_file.srcPath =  this->getCwdPath() +  "/default.html";
 		return (200);
 	}
@@ -537,7 +534,6 @@ Client::openDirectory(std::string &target)
 	else if ((sub = target.rfind("/")) != std::string::npos)
 		target = target.substr(sub + 1);
 
-	std::cout << "SROUCE target : " << target << std::endl;
 
 	DIR *dir;
 	if ((dir = opendir(path.c_str())))
@@ -550,7 +546,6 @@ Client::openDirectory(std::string &target)
 				break;
 			if (strcmp(dirent->d_name, (target).c_str()) == SUCCESS)
 			{
-				std::cout << "\n[!]SRC FOUND \n";
 				(target).insert(0, "/");
 				m_file.srcPath = path + target;
 				closedir(dir);
@@ -581,18 +576,15 @@ Client::readFile(int fd)
 	char buffer[BUFFER_SIZE + 1];
 
 	memset(buffer, 0, sizeof(buffer));
-	//std::cout << "reading\n";
 	ssize_t size = read(fd, buffer, BUFFER_SIZE);
-	std::cout << "size : " << size << std::endl;
+
 	if (size < 0)
 	{
-		std::cout << "size < 0" << std::endl;
 		return File::Error;
 	}
 	//vector<char> 로 바꾸고 미리 파일 크기 만큼   해서 용량을 미리 확보한다.
 	m_file.buffer += std::string(buffer, size);
 	m_file.size += size;
-	std::cout << m_file.size << "<<<<< SIZE_READ\n";
 	if (size < BUFFER_SIZE)
 	{
 		//std::cout << "size < BUFFER_SIZE" << std::endl;
@@ -638,8 +630,8 @@ Client::writePipe(int fd)
     m_file.m_pipe_sentBytes+= size;
     if (m_file.m_pipe_sentBytes >= this->reqParser.t_result.body.length() )
     {
-		std::cout << "PIPE WRITE COMPLETE : \n[";
-		std::cout << this->reqParser.t_result.body << "]"<< std::endl;
+		std::cout << "PIPE WRITE COMPLETE : \n";
+		//std::cout << this->reqParser.t_result.body << "]"<< std::endl;
         return Write::Complete;
     }
     return Write::Making;

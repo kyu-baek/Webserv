@@ -36,6 +36,7 @@ class Connection : public Multiplex
 		void initClient(int clientSocket);
 		void deleteClient(int socket);
 		void readyToResponse();
+		std::string getMethodToStr(int num);
 
 	public:
 		void acceptClient();

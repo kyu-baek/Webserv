@@ -52,8 +52,9 @@ WebServer::openServer()
 			throw ServerError();
 
 		m_connection.m_serverMap.insert(std::pair<int, Server>(it->m_serverFd, *it ));
-		std::cout << "Listening on " << it->m_ipAddress << ":" << it->m_port << "\n";
+		std::cerr << BLUE << "Listening on " << it->m_ipAddress << ":" << it->m_port << RESET << std::endl;
 	}
+	std::cerr << "\n";
 	return (SUCCESS);
 }
 

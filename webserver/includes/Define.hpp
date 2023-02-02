@@ -13,6 +13,13 @@
 #define REDIRECTION -500
 #define TIMER 60
 
+#define RED "\x1b[0;31m"
+#define GREEN "\x1b[0;32m"
+#define YELLOW "\x1b[0;33m"
+#define BLUE "\x1b[0;34m"
+#define MAGENTA "\x1b[0;35m"
+#define RESET "\x1b[0m"
+
 enum {
 	GET,
 	POST,

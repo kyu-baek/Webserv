@@ -17,6 +17,24 @@ def validate(username, password):
 	else:
 		return False
 
+def update_id(id, username):
+	conn = sqlite3.connect(upload_path +"users.db")
+	cursor = conn.cursor()
+	cursor.execute("UPDATE users SET id = ? WHERE username = ?", (id, username))
+	conn.commit()
+	conn.close()
+
+def show_user_list():
+	conn = sqlite3.connect(upload_path + "users.db")
+	c = conn.cursor()
+	c.execute("SELECT * FROM users")
+	print("<h2>Username / Email</h2>")
+	for row in c.fetchall():
+		# print("<li>" + row[0] + " / " + row[1]+ "</li>")
+		print(row)
+		print("<br>")
+	conn.close()
+
 form = cgi.FieldStorage()
 
 username = form.getvalue("username")
@@ -27,16 +45,20 @@ print("<body>")
 print("<h1>Login Results</h1>")
 cookie = str(os.environ.get("HTTP_COOKIE"))
 print(cookie)
+id = cookie.split("=")[1]
 if username and password:
 	# Validate the username and password here.
 	result = validate(username, password)
 	# Replace this with your own authentication logic.
 	if result == True:
 		print("<p>Login successful!</p>")
+		update_id(id, username)
 	else:
 		print("<p>Login failed!</p>")
 else:
 	print("<p>Error: Both username and password are required.</p>")
+
+show_user_list()
 
 print("</body>")
 print("</html>")

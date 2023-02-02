@@ -1,12 +1,10 @@
 #include "Connection.hpp"
 
-
 void
 Connection::eventLoop()
 {
 	while (true)
 	{
-		std::cout << "m_fileMap size : " << m_fileMap.size() << std::endl;
 		eventNum = senseEvents();
 		clearChangeList();
 		for (int i = 0; i < eventNum; i++)
@@ -30,7 +28,6 @@ void
 Connection::handleEofEvent()
 {
 	std::cout << "	HandleEofEvent : " << currEvent->ident << "  errno is :"<< errno <<std::endl;
-
 	if (currEvent->filter == EVFILT_PROC)
 		return ;
 	std::cout << "	EVFILT_PROC : " << currEvent->ident << "  errno is :"<< errno <<std::endl;
@@ -46,7 +43,32 @@ Connection::handleTimeOut()
 	{
 		deleteClient(currEvent->ident);
 	}
-	std::cout << "\n\n TIMER EVENT DONE-------------------------------------\n";
+	std::cout << "\n\n--------------TIMER EVENT DONE--------------n";
+}
+
+void
+Connection::handleErrorEvent()
+{
+	std::cout << "handleErrorEvent : " << currEvent->ident <<  "errno is : " << errno << std::endl;
+	shutdown(currEvent->ident, SHUT_RDWR);
+	if (m_serverMap.find(currEvent->ident) != m_serverMap.end())
+	{
+		if (m_clientMap.empty() == true)
+			return ;
+		std::vector<int>::iterator it = m_serverMap[currEvent->ident].m_clientVec.begin();
+		for (; it != m_serverMap[currEvent->ident].m_clientVec.end(); it++ )
+			deleteClient(*it);
+		this->m_serverMap.erase(this->m_serverMap.find(currEvent->ident));
+		close(currEvent->ident);
+	}
+	else if (this->m_clientMap.find(currEvent->ident) != this->m_clientMap.end())
+		deleteClient(currEvent->ident);
+
+	if (this->m_fileMap.find(currEvent->ident) != this->m_fileMap.end())
+	{
+		this->m_fileMap.erase(this->m_fileMap.find(currEvent->ident));
+		close(currEvent->ident);
+	}
 }
 
 void
@@ -55,16 +77,21 @@ Connection::deleteClient(int socket)
 	std::cout << "DeleteClient : " << socket<<std::endl;
 	if (m_clientMap.find(socket) == m_clientMap.end())
 		return ;
-	std::map <int, Client*>::iterator it;
-	for (it = m_fileMap.begin(); it != m_fileMap.end(); it++)
+
+	int erase = -1;
+	std::map<int, Client*>::iterator it;
+	for (it = m_fileMap.begin(); it != m_fileMap.end(); ++it)
 	{
 		if (it->second->m_clientFd == (int)socket)
-		{
-			close (it->first);
-			m_fileMap.erase(it->first);
-			continue;
-		}
+			erase = it->first;
 	}
+	if (erase != -1)
+	{
+		std::cout << "DeleteClient and file fd : " << erase << std::endl;
+		close (erase);
+		m_fileMap.erase(erase);
+	}
+
 	int server = m_clientMap.find(socket)->second.ptr_server->m_serverFd;
 	std::vector<int>::iterator it2;
 	for (it2 = m_serverMap.find(server)->second.m_clientVec.begin(); it2 != m_serverMap.find(server)->second.m_clientVec.end(); it2++)
@@ -117,16 +144,18 @@ Connection::handleWriteEvent()
 			m_clientMap[currEvent->ident].status = Res::None;
 			break;
 		case Send::Making:
-			// keep reading
 			m_clientMap[currEvent->ident].status = Res::Making;
 			break;
 		case Send::Complete:
-				m_clientMap[currEvent->ident].status = Res::Complete;
-				std::cout << currEvent->ident << " status : " <<m_clientMap[currEvent->ident].status << std::endl;
 				std::cout << "	--RESPONSE SENT TO CLIENT " << currEvent->ident << "--\n\n";
-				std::cerr << "RESPONSE COMPLIETE TO : " << currEvent->ident << std::endl;
-				std::cout << "m_resMsg : " << m_clientMap[currEvent->ident].m_resMsg << std::endl;
+				if (m_clientMap[currEvent->ident].getConnection() == "close")
+				{
+					deleteClient(currEvent->ident);
+					break;
+				}
+				m_clientMap[currEvent->ident].status = Res::Complete;
 				enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+				enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 				m_clientMap[currEvent->ident].clearResInfo();
 				m_clientMap[currEvent->ident].clearResponseByte();
 				m_clientMap[currEvent->ident].clearFileEvent();
@@ -174,33 +203,6 @@ Connection::handleWriteEvent()
 }
 
 void
-Connection::handleErrorEvent()
-{
-	std::cout << "handleErrorEvent : " << currEvent->ident <<  "errno is : " << errno << std::endl;
-	shutdown(currEvent->ident, SHUT_RDWR);
-	if (m_serverMap.find(currEvent->ident) != m_serverMap.end())
-	{
-		std::cout << "1111111\n";
-		if (m_clientMap.empty() == true)
-			return ;
-		std::vector<int>::iterator it = m_serverMap[currEvent->ident].m_clientVec.begin();
-		for (; it != m_serverMap[currEvent->ident].m_clientVec.end(); it++ )
-			deleteClient(*it);
-		this->m_serverMap.erase(this->m_serverMap.find(currEvent->ident));
-		close(currEvent->ident);
-	}
-	else if (this->m_clientMap.find(currEvent->ident) != this->m_clientMap.end())
-		deleteClient(currEvent->ident);
-
-	if (this->m_fileMap.find(currEvent->ident) != this->m_fileMap.end())
-	{
-		std::cout << "3333\n";
-		this->m_fileMap.erase(this->m_fileMap.find(currEvent->ident));
-		close(currEvent->ident);
-	}
-}
-
-void
 Connection::setNonBlock(int fd)
 {
 	if (fcntl(fd, F_SETFL, O_NONBLOCK) == FAIL)
@@ -211,7 +213,7 @@ void
 Connection::initClient(int clientSocket)
 {
 	m_serverMap[currEvent->ident].m_clientVec.push_back(clientSocket);
-
+	
 	Client tmpClient;
 	tmpClient.m_clientFd = clientSocket;
 	tmpClient.ptr_server = &m_serverMap[currEvent->ident];
@@ -229,6 +231,7 @@ Connection::initClient(int clientSocket)
 	tmpClient.m_file.m_totalBytes = 0;
 	tmpClient.m_file.size = 0;
 	m_clientMap.insert(std::pair<int, Client>(clientSocket, tmpClient));
+	m_clientMap.find(clientSocket)->second.reqParser.setMaxBody(m_serverMap[currEvent->ident].maxRequestBodySize);
 }
 
 void
@@ -283,7 +286,8 @@ Connection::clientReadEvent()
 
 		if (m_clientMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 		{
-			// std::cout << "\n\n\nprintRequest\n";
+			enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+
 			// m_clientMap[currEvent->ident].reqParser.printRequest();
 			if (m_clientMap[currEvent->ident].status == Res::None)
 			{
@@ -313,7 +317,8 @@ Connection::clientReadEvent()
 		}
 		if (m_clientMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseError)
 		{
-			std::cerr << "	Error : parse\n";
+			enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+			std::cerr <<currEvent->ident<< " : Error : parse\n";
 			m_clientMap[currEvent->ident].openErrorResponse(m_clientMap[currEvent->ident].reqParser.t_result.status);
 			if (m_clientMap[currEvent->ident].m_file.fd != -1)
 				readyToResponse();

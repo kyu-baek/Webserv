@@ -18,6 +18,7 @@ WebServer::WebServer(Config &config)
 		memset(tmpInfo.m_serverAddr.sin_zero, 0, sizeof(tmpInfo.m_serverAddr.sin_zero)); // it's a buffer only needed to convert 'sockaddr_in' type to 'sockaddr' type, which is larger type.
 
 		tmpInfo.m_errorPages = it->getBServer().errorPages;
+		tmpInfo.maxRequestBodySize = it->getBServer().maxRequestBodySize;
 		tmpInfo.m_location = it->getBLocation();
 		tmpInfo.m_cgi = it->getBCgi();
 

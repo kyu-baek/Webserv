@@ -15,6 +15,13 @@ BaseServer::setBServer(std::string fo, std::string str)
 	}
 	else if (fo == "s")
 		BServer.serverName = str;
+	else if (fo == "m")
+	{
+		int i;
+		std::stringstream ssInt(str);
+		ssInt >> i;
+		BServer.maxRequestBodySize  = i;
+	}
 }
 
 void

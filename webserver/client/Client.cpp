@@ -388,7 +388,7 @@ Client::changePosition(int n)
 int
 Client::sendResponse()
 {
-	std::cout << "SEND DATA\n"<< getSendResult();
+	//std::cout << "SEND DATA\n"<< getSendResult();
 	size_t n = send(m_clientFd, getSendResult(), getSendResultSize(), 0);
 
 	if (n < 0)
@@ -595,8 +595,8 @@ Client::readFile(int fd)
 	std::cout << m_file.size << "<<<<< SIZE_READ\n";
 	if (size < BUFFER_SIZE)
 	{
-		std::cout << "size < BUFFER_SIZE" << std::endl;
-		std::cout << m_file.buffer << std::endl;
+		//std::cout << "size < BUFFER_SIZE" << std::endl;
+		//std::cout << m_file.buffer << std::endl;
 		// close(fd);
 		// _fdMap.erase(fd);
 		return File::Complete;

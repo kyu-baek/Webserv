@@ -52,6 +52,7 @@ Client::openResponse()
 		}
 		else
 			m_file.fd = fd;
+		std::cout << "fd : " << fd << std::endl;
 	}
 
 	if (this->reqParser.t_result.method == POST || this->reqParser.t_result.method == DELETE)
@@ -445,7 +446,12 @@ Client::isValidTarget(std::string &target)
 		target = "/";
 	if (target == "/favicon.ico")
 		std::cout << "\n-->FAVICON REQUESTED \n";
-
+	if (target.find(getCwdPath().c_str(), 0, getCwdPath().length()) != std::string::npos)
+	{
+		std::cout <<"this target is imge : " << target << std::endl;
+		m_file.srcPath = target;
+		return (200);
+	}
 	std::string cgiPath;
 	if ((cgiPath =  cgiFinder(target)) != "")
 	{
@@ -649,10 +655,9 @@ void
 Client::startShowFile()
 {
 	std::string body;
-
-	body = "<!DOCTYPE html><html><body><img src=" + path;
-
-	body += " alt="" srcset=""></body></html>";
+	std::cerr <<"showfile : " <<path << std::endl;
+	body = "<!DOCTYPE html><html><body>";
+	body += "<img src=\"" + path  + "\" alt=\"\" srcset=\"\"></body></html>";
 	setBody(body);
 	setContentLength(body.length());
 	makeResult();

@@ -127,7 +127,7 @@ void
 Connection::handleWriteEvent()
 {
 	std::cout << "\n\n WRITE EVENT : " << currEvent->ident << std::endl;
-	
+
 /* Client Event Case */
 	if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
 	{
@@ -260,8 +260,8 @@ Connection::clientReadEvent()
 	int valRead = recv(currEvent->ident, reqBuffer.data(), reqBuffer.size(), 0);
 	std::stringstream ss;
 	ss << std::string(reqBuffer.begin(), reqBuffer.begin() + valRead);
-	//std::cout << "valRead :" << valRead << std::endl;
-	
+	std::cout << "valRead :" << valRead << std::endl;
+
 	if (valRead == FAIL)
 	{
 		std::cerr << currEvent->ident<<"	ERROR : read() in Client Event Case\n";
@@ -287,9 +287,18 @@ Connection::clientReadEvent()
 
 		if (m_clientMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 		{
-			std::cerr <<GREEN << "client : " << currEvent->ident << "  => REQUEST : " << getMethodToStr(m_clientMap[currEvent->ident].reqParser.t_result.method )<< RESET<< std::endl;
 			enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
-
+			if (m_clientMap[currEvent->ident].reqParser.t_result.header["Cookie"] != "")
+			{
+				std::cout << "[!]cookie exist\n";
+				m_clientMap[currEvent->ident].isCookie = true;
+			}
+			else
+			{
+				std::cout << "[!]cookie not set\n";
+				m_clientMap[currEvent->ident].isCookie = false;
+			}
+			// std::cout << "\n\n\nprintRequest\n";
 			// m_clientMap[currEvent->ident].reqParser.printRequest();
 			if (m_clientMap[currEvent->ident].status == Res::None)
 			{

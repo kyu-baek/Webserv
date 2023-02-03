@@ -16,6 +16,7 @@ def validate(username, password):
 		conn.close()
 		return True
 	else:
+		print("<p>no uese exists</p>")
 		conn.close()
 		return False
 
@@ -68,7 +69,12 @@ print("<html>")
 print("<body>")
 print("<h1>Login Results</h1>")
 cookie = str(os.environ.get("HTTP_COOKIE"))
-# print(cookie)
+
+conn = sqlite3.connect(upload_path + "/users.db")
+c = conn.cursor()
+c.execute("CREATE TABLE IF NOT EXISTS users (username TEXT, email TEXT, password TEXT, id TEXT, islogin TEXT)")
+conn.close()
+
 id = cookie.split("=")[1]
 if is_any_login() == True:
 	print("<h1>Log out first!</h1>")

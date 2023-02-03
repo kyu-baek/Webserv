@@ -687,7 +687,7 @@ Client::startShowFile()
 	std::string str = path;
 	subb = str.rfind("/");
 	str = str.substr(subb);
-	body += "<a href=\"" + path  + "\" alt=\"\" srcset=\"\">"+ str +"</a></body></html>";
+	body += "<a href=\"" + path  + "\" download>"+ str +"</a></body></html>";
 
 	setBody(body);
 	setContentLength(body.length());

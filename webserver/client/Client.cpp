@@ -131,14 +131,16 @@ Client::initEnv(void)
 {
 	std::map<std::string, std::string> env_map;
 
-	env_map["AUTH_TYPE"] = ""; // 인증과정 없으므로 NULL
-	env_map["CONTENT_LENGTH"] = reqParser.t_result.header.at("Content-Length");
-	env_map["CONTENT_TYPE"] = reqParser.t_result.header.at("Content-Type");
+	env_map["AUTH_TYPE"] = ""; 
+	if (this->reqParser.t_result.header.find("Content-Length") != this->reqParser.t_result.header.end())
+		env_map["CONTENT_LENGTH"] = reqParser.t_result.header.at("Content-Length");
+	if (this->reqParser.t_result.header.find("Content-Type") != this->reqParser.t_result.header.end())
+		env_map["CONTENT_TYPE"] = reqParser.t_result.header.at("Content-Type");
 	env_map["UPLOAD_PATH"] = getCwdPath() + "/database/";
 	env_map["REQUEST_METHOD"] = getMethod(reqParser.t_result.method);
 	env_map["QUERY_STRING"] = reqParser.t_result.query;
 	env_map["REMOTE_ADDR"] = ptr_server->m_ipAddress;
-	env_map["REMOTE_USER"] = ""; // 인증과정 없으므로 NULL
+	env_map["REMOTE_USER"] = "";
 	env_map["SERVER_NAME"] = ptr_server->m_ipAddress;
 	env_map["SERVER_PORT"] = std::to_string(ptr_server->m_port);
 	env_map["GATEWAY_INTERFACE"] = "CGI/1.1";
@@ -147,8 +149,6 @@ Client::initEnv(void)
 	env_map["SCRIPT_NAME"] = "webserv/1.1";
 	env_map["PATH_INFO"] = getExecvePath();
 	env_map["REQUEST_URI"] = getExecvePath();
-	// if (isCookie == true)
-	// 	env_map["adsadasd"] = this->reqParser.t_result.header["Cookie"];
 
 	std::map<std::string, std::string>::iterator it;
 	for (it = reqParser.t_result.header.begin(); it != reqParser.t_result.header.end(); it++)
@@ -160,10 +160,6 @@ Client::initEnv(void)
 		str.insert(0, "HTTP_");
 		env_map[str] = it->second;
 	}
-	// std::cout << "	ENV!\n";
-	// std::map<std::string, std::string>::iterator it2;
-	// for (it2 = env_map.begin() ; it2 != env_map.end(); it2++)
-	// 	std::cout << it2->first << " : [" << it2->second << "]\n";
 
 	char **cgi_env = new char *[sizeof(char *) * env_map.size() + 1];
 	int i = 0;
@@ -210,9 +206,9 @@ Client::openErrorResponse(int errorCode)
 	std::map<std::string, std::vector<int> >::iterator it;
 	for (it = ptr_server->m_errorPages.begin(); it != ptr_server->m_errorPages.end(); it++)
 	{
-		for (unsigned int i = 0; i < it->second.size(); i++ )
+		for(size_t i = 0; i < it->second.size(); i++)
 		{
-			if (it->second.at(i) == errorCode)
+			if (it->second[i] == errorCode)
 			{
 				errorPath = it->first;
 				this->_statusCode = isValidTarget(errorPath);
@@ -222,6 +218,7 @@ Client::openErrorResponse(int errorCode)
 					openfile(errorPath);
 					return ;
 				}
+				break;
 			}
 		}
 	}
@@ -486,7 +483,6 @@ Client::isValidTarget(std::string &target)
 	if ((cgiPath =  cgiFinder(target)) != "")
 	{
 		m_file.srcPath = this->getCwdPath() + "/" + cgiPath + target;
-		// std::cout << "cgi!! : " << path << "\n";
 		return (200);
 	}
 	if (target.compare(0, sizeof("/database/") - 1, "/database/") == SUCCESS)

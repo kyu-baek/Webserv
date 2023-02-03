@@ -284,7 +284,7 @@ void 	Request::checkBodyLength()
 			t_result.close = true;
 			return errorStatus("CL and TE are both exist\n", 400, ParseError);
 		}
-		if (it->second.compare("chunked") == 0)
+		if (it->second.compare("Chunked") == 0)
 			_chunked = true;
 		else
 			; // what to do with deflate, compress, gzip etc...

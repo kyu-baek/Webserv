@@ -1,0 +1,11 @@
+POST /submit.py HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+Content-Length: 24
+
+first_name=a&last_name=a
+
+
+DELETE /upload/lalala.txt HTTP/1.1
+Host: aaa.com
+Content-Length: 8

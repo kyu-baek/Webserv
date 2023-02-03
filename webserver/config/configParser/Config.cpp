@@ -147,6 +147,13 @@ Config::serverInit(int start, int end)
 			}
 			tmpServer.setError(slash == file[start].size() ? "": file[start].substr(slash + 1), tmpErrorNum);
 		}
+		else if (file[start].find("max_body ") != std::string::npos)
+		{
+			sub = file[start].find(" ") + 1;
+			if (!tmpServer.str_is_digit(file[start].substr(sub)))
+				throw (std::runtime_error("Error: max_body is not digit error"));
+			tmpServer.setBServer("m", file[start].substr(sub));
+		}
 		else if (file[start].find("location ") != std::string::npos)
 		{
 			sub = file[start].find(" ") + 1;
@@ -162,7 +169,6 @@ Config::serverInit(int start, int end)
 
 			Location location;
 			location.root = "";
-			location.maxBody = 9000;
 			location.returnType = -1;
 			location.autoListing = false;
 			location.returnRoot = "";
@@ -193,16 +199,6 @@ Config::serverInit(int start, int end)
 						while (getline(ss, temp, ' '))
 							methods.push_back(temp);
 						location.index = methods;
-					}
-					else if (tmp == "max_body")
-					{
-						std::string maxB = file[start].substr(sub + 1);
-						if (!tmpServer.str_is_digit(maxB))
-							throw (std::runtime_error("Error: max_body block : max_body is not digit error"));
-						int i;
-						std::stringstream ssInt(maxB);
-						ssInt >> i;
-						location.maxBody = i;
 					}
 					else if (tmp == "autoindex")
 					{

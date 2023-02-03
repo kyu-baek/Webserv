@@ -22,7 +22,6 @@ struct Location
 	std::string root;
 	std::vector<std::string> Methods;
 	std::vector<std::string> index;
-	int maxBody;
 	int returnType;
 	std::string returnRoot;
 	bool autoListing;

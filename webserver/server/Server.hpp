@@ -16,6 +16,7 @@ class Server
 		unsigned int m_serverAddrLen;
 		std::string m_requestMsg;
 		std::vector<int> m_clientVec;
+		int maxRequestBodySize;
 
 	public:
 		std::map<std::string, std::vector<int> > m_errorPages;
@@ -31,6 +32,7 @@ class Server
 			m_serverAddr = rhs.m_serverAddr;
 			m_serverAddrLen = rhs.m_serverAddrLen;
 			m_requestMsg = rhs.m_requestMsg;
+			maxRequestBodySize = rhs.maxRequestBodySize;
 			return (*this);
 		}
 };

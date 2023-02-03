@@ -267,11 +267,13 @@ void 	Request::checkBodyLength()
 		std::stringstream ss(it->second);
 		ss >> _bodyLength;
 		///////////// client_max_body_size check
-		// if (it->second.size() > 4 || _bodyLength > SIZE_MAX_BODY)
-		// {
-		// 	t_result.close = true;
-		// 	return errorStatus("413 Payload Too Large\n", 413, ParseError);
-		// }
+		if (it->second.size() > (_maxBody  == -1 ?  it->second.size() + 1 : _maxBody))
+		{
+			std::cout << "it->second.size() : " << it->second.size() << std::endl;
+			std::cout << _maxBody<< "   !!!!!!!!!!!!!!!!!!!!!!!!!checkBodyLength\n";
+			t_result.close = true;
+			return errorStatus("413 Payload Too Large\n", 413, ParseError);
+		}
 	}
 
 	it = t_result.header.find("Transfer-Encoding");
@@ -323,11 +325,12 @@ void	Request::parseBody()
 	}
 	t_result.body += _buf;
 	_buf.clear();
-	// if (t_result.body.size() >= SIZE_MAX_BODY)
-	// {
-	// 	t_result.close = true;
-	// 	return errorStatus("413 Payload Too Large\n", 413, ParseError);
-	// }
+	if( t_result.body.size() >	(_maxBody  == -1 ?  t_result.body.size() + 1 : _maxBody))
+	{
+		std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!parseBody\n\n";
+		t_result.close = true;
+		return errorStatus("413 Payload Too Large\n", 413, ParseError);
+	}
 	if (t_result.body.size() >= (unsigned long)_bodyLength)
 	{
 		t_result.pStatus = ParseComplete;
@@ -406,11 +409,12 @@ void	Request::getChunkMessage()
 	if (pos != (unsigned long)_bodyLength)
 		return errorStatus("Chunk message length doesn't match\n", 400, ParseError);
 	t_result.body += _buf.substr(0, pos);
-	// if (t_result.body.size() >= SIZE_MAX_BODY)
-	// {
-	// 	t_result.close = true;
-	// 	return errorStatus("413 Payload Too Large\n", 413, ParseError);
-	// }
+	if (t_result.body.size() >= (_maxBody  == -1 ?  t_result.body.size() + 1 : _maxBody))
+	{
+		std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!getChunkMessage\n\n";
+		t_result.close = true;
+		return errorStatus("413 Payload Too Large\n", 413, ParseError);
+	}
 	_buf.erase(0, pos + 2);
 	_bodyLength = -1;
 }

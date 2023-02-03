@@ -55,6 +55,7 @@ public:
 	void 		clearRequest();
 
 	void		makeRequest(std::string message);
+	void		setMaxBody(int max) {_maxBody = max;};
 	void		printRequest();
 
 	Request();
@@ -63,7 +64,6 @@ public:
 	Request& operator=(const Request &orig);
 
 private:
-
 	std::string	_buf;
 	std::string	_head;
 	std::string	_target;
@@ -71,6 +71,7 @@ private:
 	int 		_bodyLength;
 	bool		_chunkReady;
 	bool		_chunked;
+	int			_maxBody;
 	void		parseRequestLine();
 	void 		checkMethod(std::string &mControl);
 	void		validateMethod(std::string &mControl, std::string method);

@@ -149,6 +149,8 @@ Client::initEnv(void)
 	env_map["SCRIPT_NAME"] = "webserv/1.1";
 	env_map["PATH_INFO"] = getExecvePath();
 	env_map["REQUEST_URI"] = getExecvePath();
+	// if (isCookie == true)
+	// 	env_map["adsadasd"] = this->reqParser.t_result.header["Cookie"];
 
 	std::map<std::string, std::string>::iterator it;
 	for (it = reqParser.t_result.header.begin(); it != reqParser.t_result.header.end(); it++)
@@ -281,6 +283,8 @@ void
 Client::makeResult()
 {
 	m_resMsg += getHttpVersion() + " " + std::to_string(getStatusCode())  + " " + getStatusMsg() + CRLF;
+	if (isCookie == false)
+		m_resMsg += "Set-Cookie : " + generateCookie() + CRLF;
 	m_resMsg += "Connection : " + getConnection() + CRLF;
 	m_resMsg += "Date : " + getDate() + CRLF;
 	m_resMsg += "Server : " + getServer() + CRLF;
@@ -290,6 +294,35 @@ Client::makeResult()
 	m_resMsg += "\n";
 	m_resMsg += getResponseBody();
 	m_totalBytes = m_resMsg.size();
+}
+
+std::string
+Client::generateCookie()
+{
+	std::string cookie = "";
+	std::string sessionID = "session_id";
+	std::string sessionIdVal = "webserv_" + generate_random_string(10);
+	cookie += sessionID;
+	cookie += "=";
+	cookie += sessionIdVal;
+	cookie += "; Path=/; ";
+	cookie += "Secure; HttpOnly";
+	return (cookie);
+}
+
+std::string
+Client::generate_random_string(int length)
+{
+	std::string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	std::string result = "";
+	std::mt19937 generator(time(0));
+	std::uniform_int_distribution<int> distribution(0, characters.size() - 1);
+
+	for (int i = 0; i < length; i++)
+	{
+		result += characters[distribution(generator)];
+	}
+	return result;
 }
 
 void
@@ -632,23 +665,23 @@ Client::clearFileEvent()
 int
 Client::writePipe(int fd)
 {
-    size_t size;
+	size_t size;
 
-    size = write(fd, this->reqParser.t_result.body.c_str() + m_file.m_pipe_sentBytes, \
-                this->reqParser.t_result.body.length() - m_file.m_pipe_sentBytes);
-    std::cout << "Write size : " << size << std::endl;
+	size = write(fd, this->reqParser.t_result.body.c_str() + m_file.m_pipe_sentBytes,
+				 this->reqParser.t_result.body.length() - m_file.m_pipe_sentBytes);
+	std::cout << "Write size : " << size << std::endl;
 	if (size < 0)
-    {
-        return Write::Error;
-    }
-    m_file.m_pipe_sentBytes+= size;
-    if (m_file.m_pipe_sentBytes >= this->reqParser.t_result.body.length() )
-    {
+	{
+		return Write::Error;
+	}
+	m_file.m_pipe_sentBytes += size;
+	if (m_file.m_pipe_sentBytes >= this->reqParser.t_result.body.length())
+	{
 		std::cout << "PIPE WRITE COMPLETE : \n[";
-		std::cout << this->reqParser.t_result.body << "]"<< std::endl;
-        return Write::Complete;
-    }
-    return Write::Making;
+		std::cout << this->reqParser.t_result.body << "]" << std::endl;
+		return Write::Complete;
+	}
+	return Write::Making;
 }
 
 void

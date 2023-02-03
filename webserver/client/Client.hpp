@@ -22,6 +22,7 @@ class Client : public ResponseInfo
 		std::string cgiOutPath;
 		std::string cgiOutTarget;
 		std::string autoIndexPath;
+		bool isCookie;
 
 	public:
 		int status;
@@ -68,6 +69,10 @@ class Client : public ResponseInfo
 
 	public:
 		std::map<std::string, std::string> initMimeMap();
+
+	public:
+		std::string generateCookie();
+		std::string generate_random_string(int length);
 };
 
 #endif

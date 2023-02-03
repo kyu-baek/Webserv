@@ -657,7 +657,13 @@ Client::startShowFile()
 	std::string body;
 	std::cerr <<"showfile : " <<path << std::endl;
 	body = "<!DOCTYPE html><html><body>";
-	body += "<img src=\"" + path  + "\" alt=\"\" srcset=\"\"></body></html>";
+
+	size_t subb;
+	std::string str = path;
+	subb = str.rfind("/");
+	str = str.substr(subb);
+	body += "<a href=\"" + path  + "\" alt=\"\" srcset=\"\">"+ str +"</a></body></html>";
+
 	setBody(body);
 	setContentLength(body.length());
 	makeResult();

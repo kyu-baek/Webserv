@@ -55,6 +55,7 @@ class Client : public ResponseInfo
 		int isValidTarget(std::string &target);
 		int openDirectory(std::string &target);
 		int checkAutoListing();
+		int checkDeletePath();
 
 	public:
 		int writePipe(int fd);

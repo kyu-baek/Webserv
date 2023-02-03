@@ -55,6 +55,7 @@ Client::openResponse()
 		std::cout << "fd : " << fd << std::endl;
 	}
 
+	std::cout << "target : " << reqParser.t_result.target << std::endl;
 	if (this->reqParser.t_result.method == POST || this->reqParser.t_result.method == DELETE)
 	{
 		/*
@@ -110,18 +111,16 @@ Client::openResponse()
 		}
 		else
 		{
-			// std::cout << "	This is Parent of POST \n";
-			// std::cout << "inFds[0] : " << m_file.inFds[0] << " inFds[1] : " << m_file.inFds[1] <<std::endl;
-			// std::cout << "outFds[0] : " << m_file.outFds[0] << " outFds[1] : " << m_file.outFds[1] <<std::endl;
-
 			close(m_file.inFds[0]);
 			close(m_file.outFds[1]);
-
 			// waitpid(pid, NULL, WNOHANG);
-
 			isCgi = true;
 			status = Res::Making;
 		}
+	}
+	if (this->reqParser.t_result.method == DELETE)
+	{
+		std::cout << "DELETE logic\n";
 
 	}
 }
@@ -471,11 +470,10 @@ Client::isValidTarget(std::string &target)
 	// std::cout << "target : " <<target << std::endl;
 	if (target == "/home")
 		target = "/";
-	if (target == "/favicon.ico")
-		std::cout << "\n-->FAVICON REQUESTED \n";
+	// if (target == "/favicon.ico")
+	// 	std::cout << "\n-->FAVICON REQUESTED \n";
 	if (target.find(getCwdPath().c_str(), 0, getCwdPath().length()) != std::string::npos)
 	{
-		std::cout <<"this target is imge : " << target << std::endl;
 		m_file.srcPath = target;
 		return (200);
 	}
@@ -509,12 +507,14 @@ Client::isValidTarget(std::string &target)
 				if (it->second.index.size() > 0 )
 				{
 					m_file.srcPath = path + "/" +  it->second.index[0];
-					// std::cout << "!!target : " << target << std::endl;
 					return (200);
 				}
 				else if (this->status != Res::Error && it->second.autoListing == true)
 				{
-					m_file.srcPath = "/" + it->second.root + "/";
+					if ( it->second.root != "/")
+						m_file.srcPath = "/" + it->second.root + "/";
+					else
+						m_file.srcPath = it->second.root;
 					return (AUTO);
 				}
 				else
@@ -527,28 +527,47 @@ Client::isValidTarget(std::string &target)
 			m_file.srcPath = reqParser.t_result.target;
 			return (AUTO);
 		}
+		if (checkDeletePath())
+		{
+			path = getCwdPath() + reqParser.t_result.target;
+			m_file.srcPath = reqParser.t_result.target;
+			return (200);
+		}
 	}
 	if (m_file.srcPath  != "")
 	{
-		// std::cout << "path nothing \n";
+		std::cout << "path nothing \n";
 		m_file.srcPath =  this->getCwdPath() +  "/default.html";
 		return (200);
 	}
+	std::cout <<"m_file.srcPath  : " <<m_file.srcPath  <<std::endl;
 	return (404);
 }
 
 int
 Client::checkAutoListing()
 {
-	std::cout << "checkoutAutoListing target : " << reqParser.t_result.target << std::endl;
-	std::cout << reqParser.t_result.target.rfind("/") << std::endl;
-	std::cout <<reqParser.t_result.target.size()<< std::endl;
-	if (reqParser.t_result.target != "/" && (reqParser.t_result.target.rfind("/")) == reqParser.t_result.target.size() - 1)
+	if ((reqParser.t_result.target.rfind("/")) == reqParser.t_result.target.size() - 1)
 	{
 		std::cout << "checkoutAutoListing\n";
 		return 1;
 	}
 	return 0;
+}
+
+int
+Client::checkDeletePath()
+{
+	size_t sub;
+	std::string subQuery = reqParser.t_result.target;
+	if ((sub = subQuery.find('?') ) != std::string::npos)
+		subQuery = subQuery.substr(0, sub);
+	
+	if (reqParser.t_result.method == DELETE)
+		return 1;
+	return 0;
+	
+
 }
 
 int

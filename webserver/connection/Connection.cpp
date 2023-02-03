@@ -284,7 +284,7 @@ Connection::clientReadEvent()
 		//std::cout << "\n\n\nRequest \n" << ss.str() << "\n\n";
 		m_clientMap[currEvent->ident].reqParser.makeRequest(ss.str());
 		m_clientMap[currEvent->ident].status = Res::None;
-
+		std::cout <<" Request status : " << m_clientMap[currEvent->ident].reqParser.t_result.pStatus << "\n";
 		if (m_clientMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 		{
 			std::cerr <<GREEN << "client : " << currEvent->ident << "  => REQUEST : " << getMethodToStr(m_clientMap[currEvent->ident].reqParser.t_result.method )<< RESET<< std::endl;

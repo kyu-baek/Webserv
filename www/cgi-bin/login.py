@@ -16,7 +16,7 @@ def validate(username, password):
 		conn.close()
 		return True
 	else:
-		print("<p>no uese exists</p>")
+		print("<p>no ueser exists</p>")
 		conn.close()
 		return False
 
@@ -60,6 +60,34 @@ def check_login(username):
 	else:
 		return False
 
+def logout():
+	conn = sqlite3.connect(upload_path + "users.db")
+	c = conn.cursor()
+	islogin = "false"
+	c.execute("UPDATE users SET islogin = ?", (islogin,))
+	conn.commit()
+	conn.close()
+
+def is_same_sessionid(id, username):
+	conn = sqlite3.connect(upload_path + "users.db")
+	c = conn.cursor()
+	c.execute("SELECT id FROM users WHERE username = ?", (username,))
+	saved_id = c.fetchone()
+	# print(saved_id)
+	if saved_id and saved_id[0] != id:
+		print("defferent!")
+		return False
+	return True
+
+def is_defaultid(id, username):
+	conn = sqlite3.connect(upload_path + "users.db")
+	c = conn.cursor()
+	c.execute("SELECT id FROM users WHERE username = ?", (username,))
+	saved_id = c.fetchone()
+	if saved_id and saved_id[0] == "default_id":
+		return True
+	return False
+
 form = cgi.FieldStorage()
 
 username = form.getvalue("username")
@@ -76,9 +104,19 @@ c.execute("CREATE TABLE IF NOT EXISTS users (username TEXT, email TEXT, password
 conn.close()
 
 id = cookie.split("=")[1]
-if is_any_login() == True:
-	print("<h1>Log out first!</h1>")
 
+
+
+if is_same_sessionid(id, username) == False:
+	if is_defaultid == False:
+		print("<h2>Different session id</h2>")
+		logout()
+	else:
+		print("<h1>Login successful!</h1>")
+		update_id(id, username)
+		show_user_list()
+elif is_any_login() == True:
+	print("<h1>Log out first!</h1>")
 else:
 	if username and password:
 		# Validate the username and password here.
@@ -94,7 +132,7 @@ else:
 				show_user_list()
 		else:
 			print("<h1>Login failed!</h1>")
-			print("<h2>Wrong username or password</h2>")
+
 	else:
 		print("<p>Error: Both username and password are required.</p>")
 

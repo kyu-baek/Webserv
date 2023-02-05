@@ -71,7 +71,6 @@ Connection::handleErrorEvent()
 void
 Connection::deleteClient(int socket)
 {
-	std::cout << "DeleteClient : " << socket<<std::endl;
 	if (m_clientMap.find(socket) == m_clientMap.end())
 		return ;
 
@@ -84,7 +83,7 @@ Connection::deleteClient(int socket)
 	}
 	if (erase != -1)
 	{
-		std::cout << "DeleteClient and file fd : " << erase << std::endl;
+		//std::cout << "DeleteClient and file fd : " << erase << std::endl;
 		close (erase);
 		m_fileMap.erase(erase);
 	}
@@ -100,7 +99,7 @@ Connection::deleteClient(int socket)
 		}
 	}
 	m_clientMap.erase(socket);
-	enrollEventToChangeList(socket, EVFILT_TIMER, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+	//enrollEventToChangeList(socket, EVFILT_TIMER, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 	close(socket);
 	std::cerr << RED << "closed : " << socket << RESET << std::endl;
 }
@@ -126,12 +125,12 @@ Connection::handleReadEvent()
 void
 Connection::handleWriteEvent()
 {
-	std::cout << "\n\n WRITE EVENT : " << currEvent->ident << std::endl;
+	//std::cout << "\n\n WRITE EVENT : " << currEvent->ident << std::endl;
 
 /* Client Event Case */
 	if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
 	{
-		std::cout << "CLIENT WRITE : " << currEvent->ident << std::endl;
+		//std::cout << "CLIENT WRITE : " << currEvent->ident << std::endl;
 		int result;
 		result = m_clientMap[currEvent->ident].sendResponse();
 		switch (result)
@@ -145,7 +144,7 @@ Connection::handleWriteEvent()
 			m_clientMap[currEvent->ident].status = Res::Making;
 			break;
 		case Send::Complete:
-				std::cout << "	--RESPONSE SENT TO CLIENT " << currEvent->ident << "--\n\n";
+				//std::cout << "	--RESPONSE SENT TO CLIENT " << currEvent->ident << "--\n\n";
 				if (m_clientMap[currEvent->ident].getConnection() == "close")
 				{
 					deleteClient(currEvent->ident);
@@ -173,9 +172,9 @@ Connection::handleWriteEvent()
 /* File Event Case */
 	if ((m_fileMap.find(currEvent->ident) != m_fileMap.end()) && (m_fileMap[currEvent->ident]->isCgi == true))
 	{
-		std::cout << "FILE WRITE : " << currEvent->ident << std::endl;
+		//std::cout << "FILE WRITE : " << currEvent->ident << std::endl;
 		int result = m_fileMap[currEvent->ident]->writePipe(currEvent->ident);
-		std::cout << "		RESULT OF CGI WRITE : " << result << "\n\n";
+		//std::cout << "		RESULT OF CGI WRITE : " << result << "\n\n";
 		switch (result)
 		{
 		case Write::Error:
@@ -194,7 +193,7 @@ Connection::handleWriteEvent()
 			enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 			close(currEvent->ident);
 			m_fileMap.erase(currEvent->ident);
-			std::cout << "close : " << currEvent->ident << std::endl;
+			//std::cout << "close : " << currEvent->ident << std::endl;
 			break;
 		}
 	}
@@ -254,7 +253,7 @@ Connection::acceptClient()
 void
 Connection::clientReadEvent()
 {
-	std::cout << "\n--IN CLIENT : " << currEvent->ident << "\n";
+	//std::cout << "\n--IN CLIENT : " << currEvent->ident << "\n";
 
 	std::vector<char> reqBuffer(BUFFER_SIZE);
 	int valRead = recv(currEvent->ident, reqBuffer.data(), reqBuffer.size(), 0);
@@ -284,7 +283,6 @@ Connection::clientReadEvent()
 		//std::cout << "\n\n\nRequest \n" << ss.str() << "\n\n";
 		m_clientMap[currEvent->ident].reqParser.makeRequest(ss.str());
 		m_clientMap[currEvent->ident].status = Res::None;
-		std::cout <<" Request status : " << m_clientMap[currEvent->ident].reqParser.t_result.pStatus << "\n";
 		if (m_clientMap[currEvent->ident].reqParser.t_result.pStatus == Request::ParseComplete)
 		{
 			std::cerr <<GREEN << "client : " << currEvent->ident << "  => REQUEST : " << getMethodToStr(m_clientMap[currEvent->ident].reqParser.t_result.method )<< RESET<< std::endl;
@@ -384,7 +382,7 @@ Connection::readyToResponse()
 void
 Connection::fileReadRvent()
 {
-	std::cout << "FILE READ : " << currEvent->ident << std::endl;
+	//std::cout << "FILE READ : " << currEvent->ident << std::endl;
 	if (m_fileMap[currEvent->ident]->status == Res::Making)
 	{
 		int res = m_fileMap[currEvent->ident]->readFile(currEvent->ident);
@@ -396,7 +394,7 @@ Connection::fileReadRvent()
 			close(currEvent->ident);
 			m_fileMap.erase(currEvent->ident);
 			m_fileMap[currEvent->ident]->m_file.buffer.clear();
-			std::cout << "fError" << std::endl;
+			//std::cout << "fError" << std::endl;
 			break;
 		case File::Making:
 			// std::cout << "fMaking = " << std::endl;

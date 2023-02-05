@@ -768,18 +768,12 @@ Client::writePipe(int fd)
 
 	size = write(fd, this->reqParser.t_result.body.c_str() + m_file.m_pipe_sentBytes,
 				 this->reqParser.t_result.body.length() - m_file.m_pipe_sentBytes);
-	std::cout << "Write size : " << size << std::endl;
+	//std::cout << "Write size : " << size << std::endl;
 	if (size < 0)
-    {
         return Write::Error;
-    }
     m_file.m_pipe_sentBytes+= size;
     if (m_file.m_pipe_sentBytes >= this->reqParser.t_result.body.length() )
-    {
-		std::cout << "PIPE WRITE COMPLETE : \n";
-		//std::cout << this->reqParser.t_result.body << "]"<< std::endl;
         return Write::Complete;
-    }
     return Write::Making;
 }
 

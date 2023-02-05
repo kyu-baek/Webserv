@@ -13,6 +13,7 @@ void 		Request::clearRequest()
 	t_result.pStatus = ParseNone;
 	t_result.body.clear();
 	t_result.header.clear();
+	t_result.close = false;
 }
 
 /**
@@ -151,7 +152,6 @@ void	Request::checkVersion()
  */
 void	Request::parseHeader()
 {
-	std::cout << "parseHeader\n";
 	size_t		pos;
 
 	pos = _buf.find(CRLF CRLF);
@@ -159,7 +159,6 @@ void	Request::parseHeader()
 	{
 		if (_buf.size() > SIZE_MAX_HEADER)
 			return errorStatus("# Header Line Too Long\n", 400, ParseError);
-		std::cout << "return\n";
 		return ;
 	}
 	_head = _buf.substr(0, pos + 2);
@@ -175,7 +174,6 @@ void	Request::parseHeader()
  */
 void	Request::tokenizeHeader()
 {
-	std::cout << "tokenizeHeader : " << t_result.pStatus  <<std::endl;
 	size_t		pos_nl_prev;
 	size_t		pos_nl_next;
 	size_t		pos_start;
@@ -228,7 +226,6 @@ bool	Request::isOWS(int c)
  */
 void 	Request::verifyHeader()
 {
-	std::cout << "verifyHeader\n";
 	if (t_result.pStatus == ParseHeader)
 		checkHost();
 	if (t_result.pStatus == ParseHeader)
@@ -273,8 +270,6 @@ void 	Request::checkBodyLength()
 		///////////// client_max_body_size check
 		if (it->second.size() > (_maxBody  == -1 ?  it->second.size() + 1 : _maxBody))
 		{
-			std::cout << "it->second.size() : " << it->second.size() << std::endl;
-			std::cout << _maxBody<< "   !!!!!!!!!!!!!!!!!!!!!!!!!checkBodyLength\n";
 			t_result.close = true;
 			return errorStatus("413 Payload Too Large\n", 413, ParseError);
 		}
@@ -331,7 +326,6 @@ void	Request::parseBody()
 	_buf.clear();
 	if( t_result.body.size() >	(_maxBody  == -1 ?  t_result.body.size() + 1 : _maxBody))
 	{
-		std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!parseBody\n\n";
 		t_result.close = true;
 		return errorStatus("413 Payload Too Large\n", 413, ParseError);
 	}
@@ -415,7 +409,6 @@ void	Request::getChunkMessage()
 	t_result.body += _buf.substr(0, pos);
 	if (t_result.body.size() >= (_maxBody  == -1 ?  t_result.body.size() + 1 : _maxBody))
 	{
-		std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!getChunkMessage\n\n";
 		t_result.close = true;
 		return errorStatus("413 Payload Too Large\n", 413, ParseError);
 	}
@@ -465,6 +458,7 @@ void	Request::errorStatus(std::string message, int status, int pStatus)
 Request::Request(): _bodyLength(0), _chunked(false) {
 	t_result.pStatus = ParseNone;
 	t_result.status = 200;
+	t_result.close = false;
 }
 
 Request::~Request() {}

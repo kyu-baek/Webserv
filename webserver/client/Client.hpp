@@ -58,6 +58,11 @@ class Client : public ResponseInfo
 		int checkDeletePath();
 
 	public:
+		bool deleteDir(std::string path);
+		bool checkForbiddenFile(std::string src);
+
+
+	public:
 		int writePipe(int fd);
 		int	readFile(int fd);
 		void clearFileEvent();

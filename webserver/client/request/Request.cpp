@@ -151,6 +151,7 @@ void	Request::checkVersion()
  */
 void	Request::parseHeader()
 {
+	std::cout << "parseHeader\n";
 	size_t		pos;
 
 	pos = _buf.find(CRLF CRLF);
@@ -158,6 +159,7 @@ void	Request::parseHeader()
 	{
 		if (_buf.size() > SIZE_MAX_HEADER)
 			return errorStatus("# Header Line Too Long\n", 400, ParseError);
+		std::cout << "return\n";
 		return ;
 	}
 	_head = _buf.substr(0, pos + 2);
@@ -173,6 +175,7 @@ void	Request::parseHeader()
  */
 void	Request::tokenizeHeader()
 {
+	std::cout << "tokenizeHeader : " << t_result.pStatus  <<std::endl;
 	size_t		pos_nl_prev;
 	size_t		pos_nl_next;
 	size_t		pos_start;
@@ -225,6 +228,7 @@ bool	Request::isOWS(int c)
  */
 void 	Request::verifyHeader()
 {
+	std::cout << "verifyHeader\n";
 	if (t_result.pStatus == ParseHeader)
 		checkHost();
 	if (t_result.pStatus == ParseHeader)

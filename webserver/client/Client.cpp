@@ -9,23 +9,17 @@ Client::openResponse()
 	if (this->_statusCode >= 400)
 	{
 		openErrorResponse(_statusCode);
-		std::cerr << "	ERROR : INVALID TARGET\n";
 		return ;
 	}
 
-	// std::cout << "statusRes :" << this->_statusCode << "\n";
 	if (this->reqParser.t_result.method == GET)
 	{
 		if (_statusCode == AUTO) //autoindex
 		{
-			std::cout << "  AUTOINDEX \n";
 			this->_statusCode = 200;
 			startAutoindex();
 			if (this->_statusCode >= 400)
-			{
 				openErrorResponse(_statusCode);
-				std::cerr << "	ERROR : INVALID TARGET\n";
-			}
 			else if (_statusCode == INDEX)
 			{
 				this->_statusCode = 200;
@@ -52,10 +46,9 @@ Client::openResponse()
 		}
 		else
 			m_file.fd = fd;
-		std::cout << "fd : " << fd << std::endl;
 	}
 
-	if (this->reqParser.t_result.method == POST || this->reqParser.t_result.method == DELETE)
+	if (cgiFinder(reqParser.t_result.target) != "" || this->reqParser.t_result.method == POST)
 	{
 		/*
 			file open logic!
@@ -110,20 +103,118 @@ Client::openResponse()
 		}
 		else
 		{
-			// std::cout << "	This is Parent of POST \n";
-			// std::cout << "inFds[0] : " << m_file.inFds[0] << " inFds[1] : " << m_file.inFds[1] <<std::endl;
-			// std::cout << "outFds[0] : " << m_file.outFds[0] << " outFds[1] : " << m_file.outFds[1] <<std::endl;
-
 			close(m_file.inFds[0]);
 			close(m_file.outFds[1]);
-
 			// waitpid(pid, NULL, WNOHANG);
-
 			isCgi = true;
 			status = Res::Making;
 		}
-
 	}
+	else if (this->reqParser.t_result.method == DELETE)
+	{
+		std::string src = getCwdPath() + reqParser.t_result.target;
+
+		struct stat ss;
+		stat(src.c_str(), &ss);
+		if (S_ISDIR(ss.st_mode) == true)
+		{
+			if (deleteDir(src) != true)
+				return ;
+		}
+		else if(access(src.c_str(), W_OK) != -1)
+		{
+			size_t sub;
+			if ((sub = src.rfind(".")) != std::string::npos)
+			{
+				if (checkForbiddenFile(src.substr(sub)) == true)
+					return ;
+			}
+			if (unlink(src.c_str()) == -1)
+			{
+				_statusCode = 500;
+				openErrorResponse(_statusCode);
+				return ;
+			}
+		}
+		else
+		{
+			switch (errno)
+			{
+				case EACCES:
+					_statusCode = 403;
+					break ;
+				case ENOENT:
+					_statusCode = 404;
+					break ;
+				default:
+					_statusCode= 500;
+			}
+			openErrorResponse(_statusCode);
+			return ;
+		}
+		_statusCode = 200;
+		initHeader();
+		makeResult();
+	}
+}
+
+
+bool
+Client::checkForbiddenFile(std::string src)
+{
+	if (src == ".cpp" || src == ".hpp")
+	{
+		_statusCode = 403;
+		openErrorResponse(_statusCode);
+		return true;
+	}
+	return false;
+}
+
+bool 
+Client::deleteDir(std::string path)
+{
+	DIR *dir;
+	if ((dir = opendir(path.c_str())) != NULL)
+	{
+		if (path[path.length() - 1] != '/')
+			path += "/";
+		struct dirent *dirent = NULL;
+		while (true)
+		{
+			dirent = readdir(dir);
+			if (!dirent)
+				break;
+			if (strcmp(dirent->d_name, ".") == SUCCESS || strcmp(dirent->d_name, "..") == SUCCESS)
+				continue;
+			if (dirent->d_type == DT_DIR)
+			{
+				if (deleteDir(path + dirent->d_name) != true)
+					return (false);
+			}
+			else
+			{
+				size_t sub;
+				std::string dName = dirent->d_name;
+				if ((sub = dName.rfind(".")) != std::string::npos)
+				{
+					if (checkForbiddenFile(dName.substr(sub)) == true)
+						return (false);
+				}
+				if (unlink((path + dName).c_str()) == -1)
+				{
+					_statusCode = 500;
+					openErrorResponse(_statusCode);
+					return (false);
+				}
+			}
+		}
+		rmdir(path.c_str());
+		return (true);
+	}
+	_statusCode = 500;
+	openErrorResponse(_statusCode);
+	return (false);
 }
 
 char **
@@ -199,6 +290,7 @@ Client::openfile(std::string targetPath)
 void
 Client::openErrorResponse(int errorCode)
 {
+	std::cerr << "	ERROR : INVALID TARGET\n";
 	this->status = Res::Error;
 	std::string errorPath = "";
 	this->_statusCode = errorCode;
@@ -471,11 +563,9 @@ Client::isValidTarget(std::string &target)
 	// std::cout << "target : " <<target << std::endl;
 	if (target == "/home")
 		target = "/";
-	if (target == "/favicon.ico")
-		std::cout << "\n-->FAVICON REQUESTED \n";
+
 	if (target.find(getCwdPath().c_str(), 0, getCwdPath().length()) != std::string::npos)
 	{
-		std::cout <<"this target is imge : " << target << std::endl;
 		m_file.srcPath = target;
 		return (200);
 	}
@@ -509,12 +599,14 @@ Client::isValidTarget(std::string &target)
 				if (it->second.index.size() > 0 )
 				{
 					m_file.srcPath = path + "/" +  it->second.index[0];
-					// std::cout << "!!target : " << target << std::endl;
 					return (200);
 				}
 				else if (this->status != Res::Error && it->second.autoListing == true)
 				{
-					m_file.srcPath = "/" + it->second.root + "/";
+					if ( it->second.root != "/")
+						m_file.srcPath = "/" + it->second.root + "/";
+					else
+						m_file.srcPath = it->second.root;
 					return (AUTO);
 				}
 				else
@@ -527,28 +619,47 @@ Client::isValidTarget(std::string &target)
 			m_file.srcPath = reqParser.t_result.target;
 			return (AUTO);
 		}
+		if (reqParser.t_result.method == DELETE)
+		{
+			path = getCwdPath() + reqParser.t_result.target;
+			m_file.srcPath = reqParser.t_result.target;
+			return (200);
+		}
 	}
 	if (m_file.srcPath  != "")
 	{
-		// std::cout << "path nothing \n";
+		std::cout << "path nothing \n";
 		m_file.srcPath =  this->getCwdPath() +  "/default.html";
 		return (200);
 	}
+	std::cout <<"m_file.srcPath  : " <<m_file.srcPath  <<std::endl;
 	return (404);
 }
 
 int
 Client::checkAutoListing()
 {
-	std::cout << "checkoutAutoListing target : " << reqParser.t_result.target << std::endl;
-	std::cout << reqParser.t_result.target.rfind("/") << std::endl;
-	std::cout <<reqParser.t_result.target.size()<< std::endl;
-	if (reqParser.t_result.target != "/" && (reqParser.t_result.target.rfind("/")) == reqParser.t_result.target.size() - 1)
+	if ((reqParser.t_result.target.rfind("/")) == reqParser.t_result.target.size() - 1)
 	{
 		std::cout << "checkoutAutoListing\n";
 		return 1;
 	}
 	return 0;
+}
+
+int
+Client::checkDeletePath()
+{
+	size_t sub;
+	std::string subQuery = reqParser.t_result.target;
+	if ((sub = subQuery.find('?') ) != std::string::npos)
+		subQuery = subQuery.substr(0, sub);
+	
+	if (reqParser.t_result.method == DELETE)
+		return 1;
+	return 0;
+	
+
 }
 
 int

@@ -55,6 +55,12 @@ class Client : public ResponseInfo
 		int isValidTarget(std::string &target);
 		int openDirectory(std::string &target);
 		int checkAutoListing();
+		int checkDeletePath();
+
+	public:
+		bool deleteDir(std::string path);
+		bool checkForbiddenFile(std::string src);
+
 
 	public:
 		int writePipe(int fd);

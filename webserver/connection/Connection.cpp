@@ -299,7 +299,13 @@ Connection::clientReadEvent()
 				if (m_sessionMap.find(sessionId) != m_sessionMap.end())
 				{
 					m_sessionMap[sessionId].push_back(log);
-					logPrint(sessionId, m_sessionMap[sessionId]);
+					std::map<std::string, std::vector<Log> >::iterator it;
+					for (it = m_sessionMap.begin(); it != m_sessionMap.end(); ++it)
+					{
+						logPrint(it->first, it->second);
+						std::cout << "-----------------\n";
+					}
+					// logPrint(sessionId, m_sessionMap[sessionId]);
 				}
 				else
 				{

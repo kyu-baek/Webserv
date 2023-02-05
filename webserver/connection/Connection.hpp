@@ -137,7 +137,7 @@ public:
 
 		for (it = logs.begin(); it != logs.end(); ++it)
 		{
-			std::cout << "SESSION LOG : "<< sessionId << " requested " << it->method << it->target << " at" << it->time << "\n";
+			std::cout << "SESSION LOG : "<< sessionId << " requested " << it->method << it->target << " at " << it->time << "\n";
 		}
 	}
 };

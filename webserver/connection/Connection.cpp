@@ -38,7 +38,7 @@ Connection::handleTimeOut()
 {
 	if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
 	{
-		std::cerr << RED << "Time Out ";  
+		std::cerr << RED << "Time Out "; 
 		deleteClient(currEvent->ident);
 	}
 }
@@ -71,7 +71,6 @@ Connection::handleErrorEvent()
 void
 Connection::deleteClient(int socket)
 {
-	std::cout << "DeleteClient : " << socket<<std::endl;
 	if (m_clientMap.find(socket) == m_clientMap.end())
 		return ;
 
@@ -100,7 +99,7 @@ Connection::deleteClient(int socket)
 		}
 	}
 	m_clientMap.erase(socket);
-	enrollEventToChangeList(socket, EVFILT_TIMER, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+	//enrollEventToChangeList(socket, EVFILT_TIMER, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 	close(socket);
 	std::cerr << RED << "closed : " << socket << RESET << std::endl;
 }
@@ -126,12 +125,10 @@ Connection::handleReadEvent()
 void
 Connection::handleWriteEvent()
 {
-	std::cout << "\n\n WRITE EVENT : " << currEvent->ident << std::endl;
-
 /* Client Event Case */
 	if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
 	{
-		std::cout << "CLIENT WRITE : " << currEvent->ident << std::endl;
+		//std::cout << "CLIENT WRITE : " << currEvent->ident << std::endl;
 		int result;
 		result = m_clientMap[currEvent->ident].sendResponse();
 		switch (result)
@@ -145,27 +142,27 @@ Connection::handleWriteEvent()
 			m_clientMap[currEvent->ident].status = Res::Making;
 			break;
 		case Send::Complete:
-				std::cout << "	--RESPONSE SENT TO CLIENT " << currEvent->ident << "--\n\n";
-				if (m_clientMap[currEvent->ident].getConnection() == "close")
-				{
-					deleteClient(currEvent->ident);
-					break;
-				}
-				m_clientMap[currEvent->ident].status = Res::Complete;
-				enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
-				enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-				m_clientMap[currEvent->ident].clearResInfo();
-				m_clientMap[currEvent->ident].clearResponseByte();
-				m_clientMap[currEvent->ident].clearFileEvent();
+			//	std::cout << "	--RESPONSE SENT TO CLIENT " << currEvent->ident << "--\n\n";
+			if (m_clientMap[currEvent->ident].getConnection() == "close")
+			{
+				deleteClient(currEvent->ident);
+				break;
+			}
+			m_clientMap[currEvent->ident].status = Res::Complete;
+			enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+			enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+			m_clientMap[currEvent->ident].clearResInfo();
+			m_clientMap[currEvent->ident].clearResponseByte();
+			m_clientMap[currEvent->ident].clearFileEvent();
 
-				m_clientMap[currEvent->ident].reqParser.clearRequest();
-				if (m_clientMap[currEvent->ident].isCgi == true)
-				{
-					m_clientMap[currEvent->ident].isCgi = false;
-					m_clientMap[currEvent->ident].cgiOutPath = "";
-					m_clientMap[currEvent->ident].cgiOutTarget = "";
-				}
-				waitpid(m_clientMap[currEvent->ident].m_file.pid, NULL, WNOHANG);
+			m_clientMap[currEvent->ident].reqParser.clearRequest();
+			if (m_clientMap[currEvent->ident].isCgi == true)
+			{
+				m_clientMap[currEvent->ident].isCgi = false;
+				m_clientMap[currEvent->ident].cgiOutPath = "";
+				m_clientMap[currEvent->ident].cgiOutTarget = "";
+			}
+			waitpid(m_clientMap[currEvent->ident].m_file.pid, NULL, WNOHANG);
 			break;
 		}
 	}
@@ -173,9 +170,7 @@ Connection::handleWriteEvent()
 /* File Event Case */
 	if ((m_fileMap.find(currEvent->ident) != m_fileMap.end()) && (m_fileMap[currEvent->ident]->isCgi == true))
 	{
-		std::cout << "FILE WRITE : " << currEvent->ident << std::endl;
 		int result = m_fileMap[currEvent->ident]->writePipe(currEvent->ident);
-		std::cout << "		RESULT OF CGI WRITE : " << result << "\n\n";
 		switch (result)
 		{
 		case Write::Error:
@@ -183,10 +178,8 @@ Connection::handleWriteEvent()
 			//자원정리
 			close(currEvent->ident);
 			break;
-
 		case Write::Making:
 			break;
-
 		case Write::Complete:
 			enrollEventToChangeList(m_fileMap[currEvent->ident]->m_file.outFds[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 
@@ -254,8 +247,6 @@ Connection::acceptClient()
 void
 Connection::clientReadEvent()
 {
-	std::cout << "\n--IN CLIENT : " << currEvent->ident << "\n";
-
 	std::vector<char> reqBuffer(BUFFER_SIZE);
 	int valRead = recv(currEvent->ident, reqBuffer.data(), reqBuffer.size(), 0);
 	std::stringstream ss;
@@ -363,7 +354,6 @@ Connection::readyToResponse()
 void
 Connection::fileReadRvent()
 {
-	std::cout << "FILE READ : " << currEvent->ident << std::endl;
 	if (m_fileMap[currEvent->ident]->status == Res::Making)
 	{
 		int res = m_fileMap[currEvent->ident]->readFile(currEvent->ident);

@@ -63,6 +63,7 @@ Connection::handleErrorEvent()
 
 	if (this->m_fileMap.find(currEvent->ident) != this->m_fileMap.end())
 	{
+		m_fileMap[currEvent->ident]->m_file.buffer.clear();
 		this->m_fileMap.erase(this->m_fileMap.find(currEvent->ident));
 		close(currEvent->ident);
 	}
@@ -83,7 +84,6 @@ Connection::deleteClient(int socket)
 	}
 	if (erase != -1)
 	{
-		//std::cout << "DeleteClient and file fd : " << erase << std::endl;
 		close (erase);
 		m_fileMap.erase(erase);
 	}
@@ -121,116 +121,6 @@ Connection::handleReadEvent()
 		fileReadRvent();
 }
 
-/* write event */
-void
-Connection::handleWriteEvent()
-{
-	//std::cout << "\n\n WRITE EVENT : " << currEvent->ident << std::endl;
-
-/* Client Event Case */
-	if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
-	{
-		//std::cout << "CLIENT WRITE : " << currEvent->ident << std::endl;
-		int result;
-		result = m_clientMap[currEvent->ident].sendResponse();
-		switch (result)
-		{
-		case Send::Error:
-			// 500 error page open
-			// std::cout << "fError" << std::endl;
-			m_clientMap[currEvent->ident].status = Res::None;
-			break;
-		case Send::Making:
-			m_clientMap[currEvent->ident].status = Res::Making;
-			break;
-		case Send::Complete:
-				//std::cout << "	--RESPONSE SENT TO CLIENT " << currEvent->ident << "--\n\n";
-				if (m_clientMap[currEvent->ident].getConnection() == "close")
-				{
-					deleteClient(currEvent->ident);
-					break;
-				}
-				m_clientMap[currEvent->ident].status = Res::Complete;
-				enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
-				enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-				m_clientMap[currEvent->ident].clearResInfo();
-				m_clientMap[currEvent->ident].clearResponseByte();
-				m_clientMap[currEvent->ident].clearFileEvent();
-
-				m_clientMap[currEvent->ident].reqParser.clearRequest();
-				if (m_clientMap[currEvent->ident].isCgi == true)
-				{
-					m_clientMap[currEvent->ident].isCgi = false;
-					m_clientMap[currEvent->ident].cgiOutPath = "";
-					m_clientMap[currEvent->ident].cgiOutTarget = "";
-				}
-				waitpid(m_clientMap[currEvent->ident].m_file.pid, NULL, WNOHANG);
-			break;
-		}
-	}
-
-/* File Event Case */
-	if ((m_fileMap.find(currEvent->ident) != m_fileMap.end()) && (m_fileMap[currEvent->ident]->isCgi == true))
-	{
-		//std::cout << "FILE WRITE : " << currEvent->ident << std::endl;
-		int result = m_fileMap[currEvent->ident]->writePipe(currEvent->ident);
-		//std::cout << "		RESULT OF CGI WRITE : " << result << "\n\n";
-		switch (result)
-		{
-		case Write::Error:
-			m_clientMap.erase(currEvent->ident);
-			//자원정리
-			close(currEvent->ident);
-			break;
-
-		case Write::Making:
-			break;
-
-		case Write::Complete:
-			enrollEventToChangeList(m_fileMap[currEvent->ident]->m_file.outFds[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-
-			//자원정리
-			enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
-			close(currEvent->ident);
-			m_fileMap.erase(currEvent->ident);
-			//std::cout << "close : " << currEvent->ident << std::endl;
-			break;
-		}
-	}
-}
-
-void
-Connection::setNonBlock(int fd)
-{
-	if (fcntl(fd, F_SETFL, O_NONBLOCK) == FAIL)
-		std::cerr << "	ERROR : fcntl()";
-}
-
-void
-Connection::initClient(int clientSocket)
-{
-	m_serverMap[currEvent->ident].m_clientVec.push_back(clientSocket);
-
-	Client tmpClient;
-	tmpClient.m_clientFd = clientSocket;
-	tmpClient.ptr_server = &m_serverMap[currEvent->ident];
-	tmpClient.isCgi = false;
-	tmpClient.status = Res::None;
-	tmpClient.m_resMsg = "";
-	tmpClient.m_totalBytes = 0;
-	tmpClient.m_sentBytes = 0;
-	tmpClient.cgiOutPath = "";
-	tmpClient.cgiOutTarget = "";
-	tmpClient.m_file.buffer = "";
-	tmpClient.m_file.fd = -1;
-	tmpClient.m_file.m_pipe_sentBytes = 0;
-	tmpClient.m_file.m_sentBytes = 0;
-	tmpClient.m_file.m_totalBytes = 0;
-	tmpClient.m_file.size = 0;
-	m_clientMap.insert(std::pair<int, Client>(clientSocket, tmpClient));
-	m_clientMap.find(clientSocket)->second.reqParser.setMaxBody(m_serverMap[currEvent->ident].maxRequestBodySize);
-}
-
 void
 Connection::acceptClient()
 {
@@ -259,7 +149,6 @@ Connection::clientReadEvent()
 	int valRead = recv(currEvent->ident, reqBuffer.data(), reqBuffer.size(), 0);
 	std::stringstream ss;
 	ss << std::string(reqBuffer.begin(), reqBuffer.begin() + valRead);
-	//std::cout << "valRead :" << valRead << std::endl;
 
 	if (valRead == FAIL)
 	{
@@ -357,6 +246,137 @@ Connection::clientReadEvent()
 	}
 }
 
+void
+Connection::fileReadRvent()
+{
+	//std::cout << "FILE READ : " << currEvent->ident << std::endl;
+	if (m_fileMap[currEvent->ident]->status == Res::Making)
+	{
+		int res = m_fileMap[currEvent->ident]->readFile(currEvent->ident);
+
+		switch (res)
+		{
+		case File::Error:
+			m_fileMap[currEvent->ident]->m_file.buffer.clear();
+			m_fileMap[currEvent->ident]->openErrorResponse(500);
+			if (m_fileMap[currEvent->ident]->m_file.fd != -1)
+				readyToResponse(m_fileMap[currEvent->ident]->m_clientFd);
+			this->m_fileMap.erase(this->m_fileMap.find(currEvent->ident));
+			close(currEvent->ident);
+			break;
+
+		case File::Making:
+			break;
+
+		case File::Complete:
+			m_fileMap[currEvent->ident]->status = Res::Complete;
+			m_fileMap[currEvent->ident]->startResponse();
+			enrollEventToChangeList(m_fileMap[currEvent->ident]->m_clientFd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+			close(currEvent->ident);
+			m_fileMap.erase(m_fileMap.find(currEvent->ident)->first);
+			break;
+		}
+	}
+}
+
+
+/* write event */
+void
+Connection::handleWriteEvent()
+{
+
+/* Client Event Case */
+	if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
+	{
+		//std::cout << "CLIENT WRITE : " << currEvent->ident << std::endl;
+		int result;
+		result = m_clientMap[currEvent->ident].sendResponse();
+		switch (result)
+		{
+		case Send::Error:
+			deleteClient(currEvent->ident);
+			break;
+		
+		case Send::Making:
+			m_clientMap[currEvent->ident].status = Res::Making;
+			break;
+		
+		case Send::Complete:
+			if (m_clientMap[currEvent->ident].getConnection() == "close")
+			{
+				deleteClient(currEvent->ident);
+				break;
+			}
+			m_clientMap[currEvent->ident].status = Res::Complete;
+			enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+			enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+			m_clientMap[currEvent->ident].clearClient();
+			waitpid(m_clientMap[currEvent->ident].m_file.pid, NULL, WNOHANG);
+			break;
+		}
+	}
+
+/* File Event Case */
+	if ((m_fileMap.find(currEvent->ident) != m_fileMap.end()) && (m_fileMap[currEvent->ident]->isCgi == true))
+	{
+		int result = m_fileMap[currEvent->ident]->writePipe(currEvent->ident);
+
+		switch (result)
+		{
+		case Write::Error:
+			m_fileMap[currEvent->ident]->openErrorResponse(500);
+			if (m_fileMap[currEvent->ident]->m_file.fd != -1)
+				readyToResponse(m_fileMap[currEvent->ident]->m_clientFd);
+			m_fileMap[currEvent->ident]->m_file.m_pipe_sentBytes = 0;
+			this->m_fileMap.erase(this->m_fileMap.find(currEvent->ident));
+			close(currEvent->ident);
+			break;
+		case Write::Making:
+			break;
+		case Write::Complete:
+			enrollEventToChangeList(m_fileMap[currEvent->ident]->m_file.outFds[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+
+			//자원정리
+			enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
+			close(currEvent->ident);
+			m_fileMap.erase(currEvent->ident);
+			break;
+		}
+	}
+}
+
+void
+Connection::setNonBlock(int fd)
+{
+	if (fcntl(fd, F_SETFL, O_NONBLOCK) == FAIL)
+		std::cerr << "	ERROR : fcntl()";
+}
+
+void
+Connection::initClient(int clientSocket)
+{
+	m_serverMap[currEvent->ident].m_clientVec.push_back(clientSocket);
+
+	Client tmpClient;
+	tmpClient.m_clientFd = clientSocket;
+	tmpClient.ptr_server = &m_serverMap[currEvent->ident];
+	tmpClient.isCgi = false;
+	tmpClient.status = Res::None;
+	tmpClient.m_resMsg = "";
+	tmpClient.m_totalBytes = 0;
+	tmpClient.m_sentBytes = 0;
+	tmpClient.cgiOutPath = "";
+	tmpClient.cgiOutTarget = "";
+	tmpClient.m_file.buffer = "";
+	tmpClient.m_file.fd = -1;
+	tmpClient.m_file.m_pipe_sentBytes = 0;
+	tmpClient.m_file.m_sentBytes = 0;
+	tmpClient.m_file.m_totalBytes = 0;
+	tmpClient.m_file.size = 0;
+	m_clientMap.insert(std::pair<int, Client>(clientSocket, tmpClient));
+	m_clientMap.find(clientSocket)->second.reqParser.setMaxBody(m_serverMap[currEvent->ident].maxRequestBodySize);
+}
+
 std::string
 Connection::getMethodToStr(int num)
 {
@@ -380,44 +400,11 @@ Connection::readyToResponse()
 }
 
 void
-Connection::fileReadRvent()
+Connection::readyToResponse(int ident)
 {
-	//std::cout << "FILE READ : " << currEvent->ident << std::endl;
-	if (m_fileMap[currEvent->ident]->status == Res::Making)
-	{
-		int res = m_fileMap[currEvent->ident]->readFile(currEvent->ident);
+	int fileFd = m_clientMap[ident].m_file.fd;
 
-		switch (res)
-		{
-		case File::Error:
-			// 500 error page open
-			close(currEvent->ident);
-			m_fileMap.erase(currEvent->ident);
-			m_fileMap[currEvent->ident]->m_file.buffer.clear();
-			//std::cout << "fError" << std::endl;
-			break;
-		case File::Making:
-			// std::cout << "fMaking = " << std::endl;
-			break;
-		case File::Complete:
-			// std::cout << "Complete" << std::endl;
-			//enrollEventToChangeList(currEvent->ident, EVFILT_READ, EV_DELETE | EV_DISABLE, 0, 0, NULL);
-			m_fileMap[currEvent->ident]->status = Res::Complete;
-			if (m_fileMap[currEvent->ident]->isCgi == false)
-			{
-				m_fileMap[currEvent->ident]->startResponse();
-				enrollEventToChangeList(m_fileMap[currEvent->ident]->m_clientFd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-				close(currEvent->ident);
-				m_fileMap.erase(m_fileMap.find(currEvent->ident)->first);
-			}
-			else	// std::cout << "cgi\n";
-			{
-				m_fileMap[currEvent->ident]->startResponse();
-				enrollEventToChangeList(m_fileMap[currEvent->ident]->m_clientFd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-				close(currEvent->ident);
-				m_fileMap.erase(m_fileMap.find(currEvent->ident)->first);
-			}
-			break;
-		}
-	}
+	enrollEventToChangeList(fileFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+	fcntl(fileFd, F_SETFL, O_NONBLOCK);
+	m_fileMap.insert(std::make_pair(fileFd, &m_clientMap[ident]));
 }

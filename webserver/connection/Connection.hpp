@@ -47,6 +47,7 @@ public:
 	void initClient(int clientSocket);
 	void deleteClient(int socket);
 	void readyToResponse();
+	void readyToResponse(int ident);
 	std::string getMethodToStr(int num);
 
 public:

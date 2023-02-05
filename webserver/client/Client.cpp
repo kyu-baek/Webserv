@@ -158,7 +158,6 @@ Client::openResponse()
 	}
 }
 
-
 bool
 Client::checkForbiddenFile(std::string src)
 {
@@ -290,7 +289,7 @@ Client::openfile(std::string targetPath)
 void
 Client::openErrorResponse(int errorCode)
 {
-	std::cerr << "	ERROR : INVALID TARGET\n";
+	std::cerr << "	ERROR : INVALID TARGET CODE : " << errorCode << std::endl;
 	this->status = Res::Error;
 	std::string errorPath = "";
 	this->_statusCode = errorCode;
@@ -508,7 +507,6 @@ Client::changePosition(int n)
 int
 Client::sendResponse()
 {
-	//std::cout << "SEND DATA\n"<< getSendResult();
 	size_t n = send(m_clientFd, getSendResult(), getSendResultSize(), 0);
 
 	if (n < 0)
@@ -555,7 +553,6 @@ Client::cgiFinder(std::string target)
 		return "";
 	return ptr_server->m_cgi.find(str)->second.root;
 }
-
 
 int
 Client::isValidTarget(std::string &target)
@@ -715,7 +712,6 @@ Client::openDirectory(std::string &target)
 	}
 }
 
-
 int
 Client::readFile(int fd)
 {
@@ -725,20 +721,11 @@ Client::readFile(int fd)
 	ssize_t size = read(fd, buffer, BUFFER_SIZE);
 
 	if (size < 0)
-	{
 		return File::Error;
-	}
-	//vector<char> 로 바꾸고 미리 파일 크기 만큼   해서 용량을 미리 확보한다.
 	m_file.buffer += std::string(buffer, size);
 	m_file.size += size;
 	if (size < BUFFER_SIZE)
-	{
-		//std::cout << "size < BUFFER_SIZE" << std::endl;
-		//std::cout << m_file.buffer << std::endl;
-		// close(fd);
-		// _fdMap.erase(fd);
 		return File::Complete;
-	}
 	return File::Making;
 }
 
@@ -768,7 +755,6 @@ Client::writePipe(int fd)
 
 	size = write(fd, this->reqParser.t_result.body.c_str() + m_file.m_pipe_sentBytes,
 				 this->reqParser.t_result.body.length() - m_file.m_pipe_sentBytes);
-	//std::cout << "Write size : " << size << std::endl;
 	if (size < 0)
         return Write::Error;
     m_file.m_pipe_sentBytes+= size;
@@ -794,6 +780,22 @@ Client::startShowFile()
 	setContentLength(body.length());
 	makeResult();
 }
+
+void
+Client::clearClient()
+{
+	clearResInfo();
+	clearResponseByte();
+	clearFileEvent();
+	reqParser.clearRequest();
+	if (isCgi == true)
+	{
+		isCgi = false;
+		cgiOutPath = "";
+		cgiOutTarget = "";
+	}
+}
+
 
 std::map<std::string, std::string>
 Client::initMimeMap()

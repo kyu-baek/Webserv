@@ -65,6 +65,7 @@ class Client : public ResponseInfo
 	public:
 		int writePipe(int fd);
 		int	readFile(int fd);
+		void clearClient();
 		void clearFileEvent();
 
 

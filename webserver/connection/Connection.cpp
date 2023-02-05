@@ -38,7 +38,7 @@ Connection::handleTimeOut()
 {
 	if (m_clientMap.find(currEvent->ident) != m_clientMap.end())
 	{
-		std::cerr << RED << "Time Out ";  
+		std::cerr << RED << "Time Out ";
 		deleteClient(currEvent->ident);
 	}
 }
@@ -211,7 +211,7 @@ void
 Connection::initClient(int clientSocket)
 {
 	m_serverMap[currEvent->ident].m_clientVec.push_back(clientSocket);
-	
+
 	Client tmpClient;
 	tmpClient.m_clientFd = clientSocket;
 	tmpClient.ptr_server = &m_serverMap[currEvent->ident];
@@ -261,7 +261,7 @@ Connection::clientReadEvent()
 	std::stringstream ss;
 	ss << std::string(reqBuffer.begin(), reqBuffer.begin() + valRead);
 	//std::cout << "valRead :" << valRead << std::endl;
-	
+
 	if (valRead == FAIL)
 	{
 		std::cerr << currEvent->ident<<"	ERROR : read() in Client Event Case\n";
@@ -293,6 +293,21 @@ Connection::clientReadEvent()
 			{
 				std::cout << "[!]cookie exist\n";
 				m_clientMap[currEvent->ident].isCookie = true;
+ 				/* session manage */
+				std::string sessionId = idFromReq(m_clientMap[currEvent->ident].reqParser);
+				Log log = logFromReq(m_clientMap[currEvent->ident].reqParser);
+				if (m_sessionMap.find(sessionId) != m_sessionMap.end())
+				{
+					m_sessionMap[sessionId].push_back(log);
+					logPrint(sessionId, m_sessionMap[sessionId]);
+				}
+				else
+				{
+					std::vector<Log> logs;
+					logs.push_back(log);
+					m_sessionMap.insert(std::make_pair(sessionId, logs));
+				}
+
 			}
 			else
 			{

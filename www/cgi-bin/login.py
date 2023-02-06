@@ -11,12 +11,13 @@ def validate(username, password):
 	conn = sqlite3.connect(upload_path + "users.db")
 	c = conn.cursor()
 	c.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
-	user = c.fetchone()
+	user = c.fetchall()
+	# print(user)
 	if user:
 		conn.close()
 		return True
 	else:
-		print("<p>no ueser exists</p>")
+		print("<p>wrong username or password</p>")
 		conn.close()
 		return False
 
@@ -75,7 +76,7 @@ def is_same_sessionid(id, username):
 	saved_id = c.fetchone()
 	# print(saved_id)
 	if saved_id and saved_id[0] != id:
-		print("defferent!")
+		print("different cookie!")
 		return False
 	return True
 

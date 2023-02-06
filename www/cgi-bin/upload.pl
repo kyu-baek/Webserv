@@ -30,7 +30,7 @@ print <<END_HTML;
 <BODY>
 <div><a href="/home">Go to home</a></div>
 <P>Thanks for uploading your file!</P>
-<P>Your file: $upload_dir/$filename</P>
+<P>Your file: Dir = $upload_dir </p> <p> File = $filename</P>
 </BODY>
 </HTML>
 END_HTML

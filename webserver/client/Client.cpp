@@ -623,7 +623,7 @@ Client::isValidTarget(std::string &target)
 		m_file.srcPath =  this->getCwdPath() +  "/default.html";
 		return (200);
 	}
-	std::cout <<"m_file.srcPath  : " <<m_file.srcPath  <<std::endl;
+
 	return (404);
 }
 

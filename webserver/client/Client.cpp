@@ -286,7 +286,6 @@ Client::openfile(std::string targetPath)
 void
 Client::openErrorResponse(int errorCode)
 {
-	//std::cerr << "	ERROR : INVALID TARGET CODE : " << errorCode << std::endl;
 	this->status = Res::Error;
 	std::string errorPath = "";
 	this->_statusCode = errorCode;
@@ -553,7 +552,6 @@ Client::cgiFinder(std::string target)
 int
 Client::isValidTarget(std::string &target)
 {
-	// std::cout << "target : " <<target << std::endl;
 	if (target == "/home")
 		target = "/";
 

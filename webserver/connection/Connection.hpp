@@ -55,12 +55,8 @@ public:
 	void clientReadEvent();
 	void fileReadRvent();
 
-	// public:
-	// 	void clientWriteEvent();
-	// 	void fileWriteEvent();
-
-	// void logStampFromReq();
-
+/* SESSION MANAGEMENT */
+public:
 	std::string idFromReq(Request req)
 	{
 		std::string cookie = req.t_result.header["Cookie"];

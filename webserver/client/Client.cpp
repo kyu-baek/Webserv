@@ -105,7 +105,7 @@ Client::openResponse()
 		{
 			close(m_file.inFds[0]);
 			close(m_file.outFds[1]);
-			// waitpid(pid, NULL, WNOHANG);
+		
 			isCgi = true;
 			status = Res::Making;
 		}
@@ -278,10 +278,7 @@ Client::openfile(std::string targetPath)
 	}
 	else
 	{
-		// std::cout <<"file size = "<< ss.st_size << std::endl;
-		// std::cout << "fd = "<< fd<<std::endl;
 		m_file.fd = fd;
-		//std::cout << "_statusCode : " << getStatusCode() << std::endl;
 		this->status = Res::Making;
 	}
 }
@@ -289,7 +286,7 @@ Client::openfile(std::string targetPath)
 void
 Client::openErrorResponse(int errorCode)
 {
-	std::cerr << "	ERROR : INVALID TARGET CODE : " << errorCode << std::endl;
+	//std::cerr << "	ERROR : INVALID TARGET CODE : " << errorCode << std::endl;
 	this->status = Res::Error;
 	std::string errorPath = "";
 	this->_statusCode = errorCode;
@@ -439,7 +436,6 @@ Client::startAutoindex()
 			if (strcmp(dirent->d_name, ".") == SUCCESS || strcmp(dirent->d_name, "..") == SUCCESS)
 				continue;
 
-			std::cout << "ptr_server->m_ipAddress : "<< ptr_server->m_ipAddress <<"\n";
 			body += "    <a href= " + m_file.srcPath  + dirent->d_name +"/" + ">" + dirent->d_name +"</a><br>";
 		}
 		closedir(dir);
@@ -586,8 +582,7 @@ Client::isValidTarget(std::string &target)
 			if (it->first == target)
 			{
 				path = this->getCwdPath() + "/"+ it->second.root;
-				// std::cout << "!!path : " << path << std::endl;
-				// std::cout << "t->second.index.size() :" << it->second.index.size()  << "\n";
+
 				if (it->second.returnType == 301 && it->second.returnRoot != "")
 				{
 					m_file.srcPath = it->second.returnRoot;
@@ -625,7 +620,6 @@ Client::isValidTarget(std::string &target)
 	}
 	if (m_file.srcPath  != "")
 	{
-		std::cout << "path nothing \n";
 		m_file.srcPath =  this->getCwdPath() +  "/default.html";
 		return (200);
 	}
@@ -638,7 +632,6 @@ Client::checkAutoListing()
 {
 	if ((reqParser.t_result.target.rfind("/")) == reqParser.t_result.target.size() - 1)
 	{
-		std::cout << "checkoutAutoListing\n";
 		return 1;
 	}
 	return 0;
@@ -767,7 +760,6 @@ void
 Client::startShowFile()
 {
 	std::string body;
-	std::cerr <<"showfile : " <<path << std::endl;
 	body = "<!DOCTYPE html><html><body>";
 
 	size_t subb;

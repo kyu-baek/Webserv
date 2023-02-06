@@ -27,7 +27,7 @@ Connection::eventLoop()
 void
 Connection::handleEofEvent()
 {
-	std::cout << "	HandleEofEvent : " << currEvent->ident << "  errno is :"<< errno <<std::endl;
+	//std::cout << "	HandleEofEvent : " << currEvent->ident << "  errno is :"<< errno <<std::endl;
 	if (currEvent->filter == EVFILT_PROC)
 		return ;
 	handleErrorEvent();
@@ -46,7 +46,7 @@ Connection::handleTimeOut()
 void
 Connection::handleErrorEvent()
 {
-	std::cout << "handleErrorEvent : " << currEvent->ident <<  " errno is : " << errno << std::endl;
+	//std::cout << "handleErrorEvent : " << currEvent->ident <<  " errno is : " << errno << std::endl;
 	shutdown(currEvent->ident, SHUT_RDWR);
 	if (m_serverMap.find(currEvent->ident) != m_serverMap.end())
 	{
@@ -207,8 +207,7 @@ Connection::clientReadEvent()
 				std::cout << "[!]cookie not set\n";
 				m_clientMap[currEvent->ident].isCookie = false;
 			}
-			// std::cout << "\n\n\nprintRequest\n";
-			// m_clientMap[currEvent->ident].reqParser.printRequest();
+	
 			if (m_clientMap[currEvent->ident].status == Res::None)
 			{
 				m_clientMap[currEvent->ident].openResponse();
@@ -221,7 +220,6 @@ Connection::clientReadEvent()
 				}
 				else
 				{
-					// std::cout << "	cgi true" << std::endl;
 					int pipeWrite = m_clientMap[currEvent->ident].m_file.inFds[1];
 					int pipeRead = m_clientMap[currEvent->ident].m_file.outFds[0];
 

@@ -335,9 +335,6 @@ Connection::handleWriteEvent()
 			break;
 		case Write::Complete:
 			enrollEventToChangeList(m_fileMap[currEvent->ident]->m_file.outFds[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-
-			//자원정리
-			enrollEventToChangeList(currEvent->ident, EVFILT_WRITE, EV_DELETE | EV_DISABLE, 0, 0, NULL);
 			close(currEvent->ident);
 			m_fileMap.erase(currEvent->ident);
 			break;

@@ -56,6 +56,7 @@ class Client : public ResponseInfo
 		int openDirectory(std::string &target);
 		int checkAutoListing();
 		int checkDeletePath();
+		void doubleToSingleSlash(std::string &target);
 
 	public:
 		bool deleteDir(std::string path);

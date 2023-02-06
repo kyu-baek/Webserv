@@ -549,9 +549,26 @@ Client::cgiFinder(std::string target)
 	return ptr_server->m_cgi.find(str)->second.root;
 }
 
+void 
+Client::doubleToSingleSlash(std::string &target)
+{
+	size_t idx;
+	while (true)
+	{
+		idx = target.find("//");
+		if (idx == std::string::npos)
+			break;
+		else
+			target.replace(idx, 2, "/");
+		
+	}
+}
+
 int
 Client::isValidTarget(std::string &target)
 {
+	doubleToSingleSlash(target);
+
 	if (target == "/home")
 		target = "/";
 

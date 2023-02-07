@@ -286,7 +286,6 @@ Client::openfile(std::string targetPath)
 void
 Client::openErrorResponse(int errorCode)
 {
-	//std::cerr << "	ERROR : INVALID TARGET CODE : " << errorCode << std::endl;
 	this->status = Res::Error;
 	std::string errorPath = "";
 	this->_statusCode = errorCode;
@@ -550,10 +549,26 @@ Client::cgiFinder(std::string target)
 	return ptr_server->m_cgi.find(str)->second.root;
 }
 
+void 
+Client::doubleToSingleSlash(std::string &target)
+{
+	size_t idx;
+	while (true)
+	{
+		idx = target.find("//");
+		if (idx == std::string::npos)
+			break;
+		else
+			target.replace(idx, 2, "/");
+		
+	}
+}
+
 int
 Client::isValidTarget(std::string &target)
 {
-	// std::cout << "target : " <<target << std::endl;
+	doubleToSingleSlash(target);
+
 	if (target == "/home")
 		target = "/";
 
@@ -623,7 +638,7 @@ Client::isValidTarget(std::string &target)
 		m_file.srcPath =  this->getCwdPath() +  "/default.html";
 		return (200);
 	}
-	std::cout <<"m_file.srcPath  : " <<m_file.srcPath  <<std::endl;
+
 	return (404);
 }
 

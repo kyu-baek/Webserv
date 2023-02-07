@@ -35,17 +35,12 @@ public:
 		virtual const char	*what() const throw();
 	};
 
-	//int check_bracket(int type, int bracket);
-
 private:
 	void configInit(const std::string path);
 	void configParse();
 	void serverInit(int, int);
 	void checkVaildServers();
-	// void printV(std::vector <std::string> const &a);
 	
-
-
 private:
 	std::vector<std::string> file;
 };

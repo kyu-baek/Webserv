@@ -7,7 +7,7 @@ Multiplex::declareKqueue()
 	if (m_kq == -1)
 	{
 		std::cerr << "kqueue() error : ";
-		exit(1); // make it throw later
+		exit(1);
 	}
 }
 
@@ -16,7 +16,6 @@ Multiplex::enrollEventToChangeList(uintptr_t ident, int16_t filter, uint16_t fla
 {
 	struct kevent event;
 
-	// EV_SET(&event, ident, filter, flags, fflags, data, udata); //ident = socketFd
 	EV_SET(&event, ident, filter, flags, fflags, data, udata);
 	m_changeList.push_back(event);
 }
@@ -30,7 +29,7 @@ Multiplex::senseEvents()
 	if (sensedEvents == -1)
 	{
 		std::cerr << "kevent() error :";
-		exit(1); // make it throw later
+		exit(1);
 	}
 	return (sensedEvents);
 }

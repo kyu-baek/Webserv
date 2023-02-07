@@ -25,7 +25,6 @@ public:
 		BServer.port = -1;
 		BServer.maxRequestBodySize = -1;
 	};
-	// BaseServer(const std::string& src) {};
     ~BaseServer() {};
 
 	void setBServer(std::string fo, std::string str);

@@ -560,18 +560,16 @@ Client::doubleToSingleSlash(std::string &target)
 			break;
 		else
 			target.replace(idx, 2, "/");
-		
 	}
 }
 
 int
 Client::isValidTarget(std::string &target)
 {
-	doubleToSingleSlash(target);
 
 	if (target == "/home")
 		target = "/";
-
+	doubleToSingleSlash(target);
 	if (target.find(getCwdPath().c_str(), 0, getCwdPath().length()) != std::string::npos)
 	{
 		m_file.srcPath = target;
